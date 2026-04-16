@@ -1,32 +1,35 @@
-import { Upload, Sparkles, Download } from "lucide-react";
+import { Download, Sparkles, Upload } from 'lucide-react';
 
 const steps = [
   {
-    number: "01",
+    number: '01',
     icon: Upload,
-    title: "Upload Your Space",
+    title: 'Upload Your Space',
     description:
-      "Take a photo of any room and upload it to our platform. We support all common image formats.",
+      'Take a photo of any room and upload it to our platform. We support all common image formats.',
   },
   {
-    number: "02",
+    number: '02',
     icon: Sparkles,
-    title: "AI Transforms It",
+    title: 'AI Transforms It',
     description:
-      "Our AI analyzes your space and generates stunning Japandi-inspired redesigns in seconds.",
+      'Our AI analyzes your space and generates stunning redesigns in seconds.',
   },
   {
-    number: "03",
+    number: '03',
     icon: Download,
-    title: "Download & Share",
+    title: 'Download & Share',
     description:
-      "Save your favorite designs, compare variations, and share them with friends or your designer.",
+      'Save your favorite designs, compare variations, and share them with friends or your designer.',
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="border-t border-border px-4 py-24 sm:py-32">
+    <section
+      id="how-it-works"
+      className="border-t border-border px-4 py-24 sm:py-32"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 export function Hero() {
   return (
@@ -9,7 +9,7 @@ export function Hero() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
         className="mx-auto max-w-3xl"
       >
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
@@ -18,8 +18,8 @@ export function Hero() {
           <span className="text-muted-foreground">AI-Powered Simplicity</span>
         </h1>
         <p className="mt-6 text-lg leading-8 text-muted-foreground sm:text-xl">
-          Upload a photo of any room and let our AI reimagine it in the timeless
-          Japandi aesthetic — clean lines, natural materials, and effortless calm.
+          Upload a photo of any room and let our AI redesign it to match your
+          preferred style — new look, new mood, and instant results.
         </p>
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link
