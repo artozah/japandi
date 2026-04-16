@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { Menu, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
+import { Menu, X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
 
 const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Spaces", href: "/spaces" },
-  { label: "Pricing", href: "#pricing" },
+  { label: 'Home', href: '/' },
+  { label: 'Spaces', href: '/spaces' },
+  { label: 'Pricing', href: '#pricing' },
 ];
 
 export function Header() {
@@ -17,8 +18,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="text-xl font-semibold tracking-tight text-foreground">
-          Japandi
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-xl font-semibold tracking-tight text-foreground"
+        >
+          <Image
+            src="/logo_dark.svg"
+            alt="Japandi"
+            width={180}
+            height={52}
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -48,14 +57,18 @@ export function Header() {
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </button>
       </div>
 
       <div
         className={cn(
-          "overflow-hidden border-t border-border transition-all duration-200 md:hidden",
-          mobileOpen ? "max-h-64" : "max-h-0 border-t-0"
+          'overflow-hidden border-t border-border transition-all duration-200 md:hidden',
+          mobileOpen ? 'max-h-64' : 'max-h-0 border-t-0',
         )}
       >
         <nav className="flex flex-col gap-1 px-4 py-3">

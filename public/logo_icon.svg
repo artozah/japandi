@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Japandi — App Icon</title>
+  <desc>Japandi torii-inspired logo mark</desc>
+
+  <rect width="64" height="64" rx="14" fill="#3C3489"/>
+  <rect x="17" y="14" width="30" height="5" rx="2.5" fill="#EEEDFE"/>
+  <rect x="19" y="21" width="26" height="3.5" rx="1.75" fill="#EEEDFE"/>
+  <rect x="20" y="24" width="5" height="26" rx="2.5" fill="#EEEDFE"/>
+  <rect x="39" y="24" width="5" height="26" rx="2.5" fill="#EEEDFE"/>
+  <circle cx="51" cy="15" r="5" fill="#1D9E75"/>
+  <circle cx="51" cy="15" r="2.5" fill="#3C3489"/>
+</svg>

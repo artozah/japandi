@@ -1,10 +1,11 @@
-import Link from "next/link";
+import Image from 'next/image';
+import Link from 'next/link';
 
 const footerLinks = [
-  { label: "Home", href: "/" },
-  { label: "Spaces", href: "/spaces" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Privacy", href: "#privacy" },
+  { label: 'Home', href: '/' },
+  { label: 'Spaces', href: '/spaces' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'Privacy', href: '#privacy' },
 ];
 
 export function Footer() {
@@ -14,12 +15,12 @@ export function Footer() {
         <div>
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-foreground"
+            className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground"
           >
-            Japandi
+            <Image src="/logo_dark.svg" alt="Japandi" width={180} height={52} />
           </Link>
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            AI-powered interior design inspired by the Japandi aesthetic.
+            Transform Your Space with AI-Powered Interior Design Ideas
           </p>
         </div>
 

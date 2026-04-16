@@ -1,76 +1,32 @@
 'use client';
 
+import { accordionData, navItems } from '@/data/spaces';
 import { cn } from '@/lib/utils';
-import type { NavItem } from '@/types/spaces';
-import {
-  CalendarHeart,
-  CheckCircle,
-  ChevronDown,
-  MapPin,
-  Palette,
-  Sparkles,
-  Wand2,
-} from 'lucide-react';
+import type { AccordionEntry, NavId } from '@/types/spaces';
+import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
-const navItems: NavItem[] = [
-  { id: 'style', label: 'Style', icon: Sparkles },
-  { id: 'occasions', label: 'Occasions', icon: CalendarHeart },
-  { id: 'locations', label: 'Locations', icon: MapPin },
-  { id: 'themes', label: 'Themes', icon: Palette },
-  { id: 'enhance', label: 'Enhance', icon: Wand2 },
-  { id: 'finalize', label: 'Finalize', icon: CheckCircle },
-];
-
-const accordionData: Record<string, { title: string }[]> = {
-  style: [
-    { title: 'Minimalist' },
-    { title: 'Wabi-Sabi' },
-    { title: 'Scandinavian' },
-    { title: 'Zen Modern' },
-  ],
-  occasions: [
-    { title: 'Everyday Living' },
-    { title: 'Guest Hosting' },
-    { title: 'Holiday Season' },
-    { title: 'Meditation Retreat' },
-  ],
-  locations: [
-    { title: 'Living Room' },
-    { title: 'Bedroom' },
-    { title: 'Kitchen' },
-    { title: 'Bathroom' },
-  ],
-  themes: [
-    { title: 'Earth Tones' },
-    { title: 'Neutral Palette' },
-    { title: 'Warm Wood' },
-    { title: 'Stone & Clay' },
-  ],
-  enhance: [{ title: 'Lighting' }, { title: 'Texture' }, { title: 'Greenery' }],
-  finalize: [
-    { title: 'High Resolution' },
-    { title: 'Color Correction' },
-    { title: 'Crop & Frame' },
-  ],
-};
-
-function ImageGrid() {
+function ImageGrid({ items }: { items: AccordionEntry[] }) {
   return (
     <div className="grid gap-1.5 pt-2">
-      {Array.from({ length: 4 }).map((_, i) => (
+      {items.map((item) => (
         <div
-          key={i}
+          key={item.title}
           className="group relative aspect-square cursor-pointer overflow-hidden rounded-md"
         >
           <Image
-            src="/images/japandi.webp"
-            alt="Japandi inspiration"
+            src={item.image}
+            alt={item.title}
             fill
             className="object-cover transition-transform group-hover:scale-105"
-            sizes="80px"
+            sizes="(max-width: 1024px) 80px, 120px"
           />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 text-center to-transparent p-1.5">
+            <span className="text-sm font-medium leading-none text-white">
+              {item.title}
+            </span>
+          </div>
         </div>
       ))}
     </div>
@@ -79,11 +35,19 @@ function ImageGrid() {
 
 interface AccordionItemProps {
   title: string;
+  items?: AccordionEntry[];
+  badges?: string[];
   isOpen: boolean;
   onToggle: () => void;
 }
 
-function AccordionItem({ title, isOpen, onToggle }: AccordionItemProps) {
+function AccordionItem({
+  title,
+  items,
+  badges,
+  isOpen,
+  onToggle,
+}: AccordionItemProps) {
   return (
     <div
       className={cn(
@@ -94,7 +58,7 @@ function AccordionItem({ title, isOpen, onToggle }: AccordionItemProps) {
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between py-2.5 text-left text-xs font-medium text-foreground transition-colors hover:text-muted-foreground"
+        className="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
       >
         {title}
         <ChevronDown
@@ -106,7 +70,20 @@ function AccordionItem({ title, isOpen, onToggle }: AccordionItemProps) {
       </button>
       {isOpen && (
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-          <ImageGrid />
+          {badges && badges.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="cursor-pointer rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <ImageGrid items={items ?? []} />
+          )}
         </div>
       )}
     </div>
@@ -114,15 +91,44 @@ function AccordionItem({ title, isOpen, onToggle }: AccordionItemProps) {
 }
 
 interface LeftMenuProps {
-  activeNav: string;
-  onNavChange: (id: string) => void;
+  activeNav: NavId;
+  onNavChange: (id: NavId) => void;
+}
+
+function AccordionPanel({ activeNav }: { activeNav: NavId }) {
+  const groups = accordionData[activeNav] ?? [];
+  const activeItem = navItems.find((n) => n.id === activeNav);
+  const [openAccordion, setOpenAccordion] = useState<string | null>(
+    groups[0]?.title ?? null,
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+      <h3 className="shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {activeItem?.label}
+      </h3>
+      <p className="mb-2 shrink-0 text-xs text-muted-foreground">
+        {activeItem?.description}
+      </p>
+      {groups.map((group) => (
+        <AccordionItem
+          key={group.title}
+          title={group.title}
+          items={group.items}
+          badges={group.badges}
+          isOpen={openAccordion === group.title}
+          onToggle={() =>
+            setOpenAccordion((prev) =>
+              prev === group.title ? null : group.title,
+            )
+          }
+        />
+      ))}
+    </div>
+  );
 }
 
 export function LeftMenu({ activeNav, onNavChange }: LeftMenuProps) {
-  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
-
-  const items = accordionData[activeNav] ?? [];
-
   return (
     <aside className="flex h-full w-[20%] shrink-0 flex-row border-r border-border bg-background">
       {/* Icon strip */}
@@ -134,10 +140,7 @@ export function LeftMenu({ activeNav, onNavChange }: LeftMenuProps) {
             <button
               key={item.id}
               type="button"
-              onClick={() => {
-                onNavChange(item.id);
-                setOpenAccordion(null);
-              }}
+              onClick={() => onNavChange(item.id)}
               className={cn(
                 'flex w-10 flex-col items-center gap-1 rounded-lg px-1 py-2 transition-colors',
                 isActive
@@ -146,7 +149,7 @@ export function LeftMenu({ activeNav, onNavChange }: LeftMenuProps) {
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="text-[9px] font-medium leading-none">
+              <span className="text-[10px] font-medium leading-none">
                 {item.label}
               </span>
             </button>
@@ -154,24 +157,8 @@ export function LeftMenu({ activeNav, onNavChange }: LeftMenuProps) {
         })}
       </div>
 
-      {/* Accordion panel */}
-      <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
-        <h3 className="mb-2 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {navItems.find((n) => n.id === activeNav)?.label}
-        </h3>
-        {items.map((item) => (
-          <AccordionItem
-            key={item.title}
-            title={item.title}
-            isOpen={openAccordion === item.title}
-            onToggle={() =>
-              setOpenAccordion((prev) =>
-                prev === item.title ? null : item.title,
-              )
-            }
-          />
-        ))}
-      </div>
+      {/* Accordion panel — key resets state when nav changes */}
+      <AccordionPanel key={activeNav} activeNav={activeNav} />
     </aside>
   );
 }

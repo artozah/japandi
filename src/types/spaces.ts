@@ -1,10 +1,24 @@
 import type { LucideIcon } from "lucide-react";
 
+export type NavId = 'style' | 'occasions' | 'locations' | 'themes' | 'enhance' | 'finalize';
+
 export interface NavItem {
-  id: string;
+  id: NavId;
   label: string;
+  description: string;
   icon: LucideIcon;
   href?: string;
+}
+
+export interface AccordionEntry {
+  image: string;
+  title: string;
+}
+
+export interface AccordionGroup {
+  title: string;
+  items?: AccordionEntry[];
+  badges?: string[];
 }
 
 export interface HistoryEntry {
@@ -22,7 +36,7 @@ export interface ChatMessage {
 }
 
 export interface SpacesState {
-  activeNav: string;
+  activeNav: NavId;
   history: HistoryEntry[];
   messages: ChatMessage[];
   currentImage: string | null;

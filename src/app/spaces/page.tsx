@@ -7,7 +7,7 @@ import { LeftMenu } from "@/components/spaces/LeftMenu";
 import { MainCanvas } from "@/components/spaces/MainCanvas";
 import { HistorySlider } from "@/components/spaces/HistorySlider";
 import { RightChat } from "@/components/spaces/RightChat";
-import type { SpacesState, HistoryEntry, ChatMessage } from "@/types/spaces";
+import type { SpacesState, HistoryEntry, ChatMessage, NavId } from "@/types/spaces";
 
 export default function SpacesPage() {
   const [state, setState] = useState<SpacesState>({
@@ -17,7 +17,7 @@ export default function SpacesPage() {
     currentImage: null,
   });
 
-  const handleNavChange = useCallback((id: string) => {
+  const handleNavChange = useCallback((id: NavId) => {
     setState((prev) => ({ ...prev, activeNav: id }));
   }, []);
 

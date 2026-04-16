@@ -3,29 +3,33 @@
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/spaces';
 
-const dummyHistory: HistoryEntry[] = Array.from({ length: 8 }, (_, i) => ({
-  id: `dummy-${i}`,
-  imageUrl: '/images/japandi.webp',
-  timestamp: Date.now() - (8 - i) * 60_000,
-  label: `Design ${i + 1}`,
-}));
-
 interface HistorySliderProps {
   history: HistoryEntry[];
   currentImage: string | null;
   onSelect: (entry: HistoryEntry) => void;
 }
 
+const containerCn =
+  'flex h-[20%] w-full shrink-0 items-center border-t border-border bg-background px-4';
+
 export function HistorySlider({
   history,
   currentImage,
   onSelect,
 }: HistorySliderProps) {
-  const entries = history.length > 0 ? history : dummyHistory;
+  if (history.length === 0) {
+    return (
+      <div className={cn(containerCn, 'justify-center')}>
+        <p className="text-sm text-muted-foreground">
+          Nothing here yet — start creating!
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-[20%] w-full shrink-0 items-center gap-3 overflow-x-auto border-t border-border bg-background px-4">
-      {entries.map((entry) => {
+    <div className={cn(containerCn, 'gap-3 overflow-x-auto')}>
+      {history.map((entry) => {
         const isActive = currentImage === entry.imageUrl;
         return (
           <button

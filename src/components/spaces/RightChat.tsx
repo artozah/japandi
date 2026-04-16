@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Send } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/types/spaces";
+import { cn } from '@/lib/utils';
+import type { ChatMessage } from '@/types/spaces';
+import { Send } from 'lucide-react';
+import { useState } from 'react';
 
 const welcomeMessage: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
+  id: 'welcome',
+  role: 'assistant',
   content:
-    "Welcome to Japandi Spaces! Upload an image to get started, or tell me what kind of design you're looking for.",
+    "Welcome to Spaces! Upload an image to get started, or tell me what kind of design you're looking for.",
   timestamp: Date.now(),
 };
 
@@ -19,7 +19,7 @@ interface RightChatProps {
 }
 
 export function RightChat({ messages, onSendMessage }: RightChatProps) {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
 
   const allMessages = [welcomeMessage, ...messages];
 
@@ -28,7 +28,7 @@ export function RightChat({ messages, onSendMessage }: RightChatProps) {
     const trimmed = input.trim();
     if (!trimmed) return;
     onSendMessage(trimmed);
-    setInput("");
+    setInput('');
   };
 
   return (
@@ -39,10 +39,10 @@ export function RightChat({ messages, onSendMessage }: RightChatProps) {
             <div
               key={msg.id}
               className={cn(
-                "max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed",
-                msg.role === "user"
-                  ? "ml-auto bg-primary text-primary-foreground"
-                  : "mr-auto bg-muted text-foreground"
+                'max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed',
+                msg.role === 'user'
+                  ? 'ml-auto bg-primary text-primary-foreground'
+                  : 'mr-auto bg-muted text-foreground',
               )}
             >
               {msg.content}
