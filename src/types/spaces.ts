@@ -21,12 +21,32 @@ export interface AccordionGroup {
   badges?: string[];
 }
 
-export interface HistoryEntry {
+export type GenerationStatus = 'generating' | 'ready' | 'error';
+
+export interface UploadHistoryEntry {
   id: string;
+  kind: 'upload';
   imageUrl: string;
   timestamp: number;
   label?: string;
 }
+
+export interface GenerationHistoryEntry {
+  id: string;
+  kind: 'generation';
+  status: GenerationStatus;
+  styleKey: string;
+  styleLabel: string;
+  styleImage?: string;
+  sourceImageUrl: string;
+  imageUrl: string | null;
+  percentage: number;
+  errorMessage?: string;
+  timestamp: number;
+  label?: string;
+}
+
+export type HistoryEntry = UploadHistoryEntry | GenerationHistoryEntry;
 
 export interface ChatMessage {
   id: string;
@@ -39,5 +59,6 @@ export interface SpacesState {
   activeNav: NavId;
   history: HistoryEntry[];
   messages: ChatMessage[];
-  currentImage: string | null;
+  currentSourceImage: string | null;
+  selectedEntryId: string | null;
 }

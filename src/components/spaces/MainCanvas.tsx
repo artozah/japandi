@@ -1,27 +1,34 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import { Upload } from "lucide-react";
+import { BeforeAfterSlider } from '@/components/spaces/BeforeAfterSlider';
+import type { HistoryEntry } from '@/types/spaces';
+import { Upload } from 'lucide-react';
+import { useCallback } from 'react';
 
 interface MainCanvasProps {
-  currentImage: string | null;
+  selectedEntry: HistoryEntry | null;
+  currentSourceImage: string | null;
   onImageUpload: (dataUrl: string) => void;
 }
 
-export function MainCanvas({ currentImage, onImageUpload }: MainCanvasProps) {
+export function MainCanvas({
+  selectedEntry,
+  currentSourceImage,
+  onImageUpload,
+}: MainCanvasProps) {
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
+      if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
-        if (typeof result === "string") {
+        if (typeof result === 'string') {
           onImageUpload(result);
         }
       };
       reader.readAsDataURL(file);
     },
-    [onImageUpload]
+    [onImageUpload],
   );
 
   const handleDrop = useCallback(
@@ -30,7 +37,7 @@ export function MainCanvas({ currentImage, onImageUpload }: MainCanvasProps) {
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -42,18 +49,40 @@ export function MainCanvas({ currentImage, onImageUpload }: MainCanvasProps) {
       const file = e.target.files?.[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile],
   );
 
-  if (currentImage) {
+  if (
+    selectedEntry &&
+    selectedEntry.kind === 'generation' &&
+    selectedEntry.status === 'ready' &&
+    selectedEntry.imageUrl
+  ) {
+    return (
+      <div className="flex h-[80%] w-full items-center justify-center bg-muted/30 p-4">
+        <BeforeAfterSlider
+          key={selectedEntry.id}
+          beforeUrl={selectedEntry.sourceImageUrl}
+          afterUrl={selectedEntry.imageUrl}
+        />
+      </div>
+    );
+  }
+
+  const displayImage =
+    selectedEntry?.kind === 'upload'
+      ? selectedEntry.imageUrl
+      : currentSourceImage;
+
+  if (displayImage) {
     return (
       <div className="flex h-[80%] w-full items-center justify-center bg-muted/30 p-4">
         <div
           className="h-full w-full rounded-lg bg-muted"
           style={{
-            backgroundImage: `url(${currentImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            backgroundImage: `url(${displayImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         />
       </div>
