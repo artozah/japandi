@@ -20,7 +20,7 @@ export default function SpacesPage() {
     activeNav: 'style',
     history: [],
     messages: [],
-    currentSourceImage: null,
+    currentSourceEntryId: null,
     selectedEntryId: null,
   });
 
@@ -39,7 +39,7 @@ export default function SpacesPage() {
       };
       return {
         ...prev,
-        currentSourceImage: dataUrl,
+        currentSourceEntryId: entry.id,
         selectedEntryId: entry.id,
         history: [...prev.history, entry],
       };
@@ -49,6 +49,39 @@ export default function SpacesPage() {
   const handleHistorySelect = useCallback((entry: HistoryEntry) => {
     if (entry.kind === 'generation' && entry.status !== 'ready') return;
     setState((prev) => ({ ...prev, selectedEntryId: entry.id }));
+  }, []);
+
+  const handleSelectOriginal = useCallback(() => {
+    setState((prev) => {
+      const latestUpload = prev.history.findLast((e) => e.kind === 'upload');
+      if (!latestUpload) return prev;
+      if (
+        prev.currentSourceEntryId === latestUpload.id &&
+        prev.selectedEntryId === latestUpload.id
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        currentSourceEntryId: latestUpload.id,
+        selectedEntryId: latestUpload.id,
+      };
+    });
+  }, []);
+
+  const handlePromoteGenerated = useCallback(() => {
+    setState((prev) => {
+      const selected = prev.history.find((e) => e.id === prev.selectedEntryId);
+      if (
+        !selected ||
+        selected.kind !== 'generation' ||
+        selected.status !== 'ready'
+      ) {
+        return prev;
+      }
+      if (prev.currentSourceEntryId === selected.id) return prev;
+      return { ...prev, currentSourceEntryId: selected.id };
+    });
   }, []);
 
   const handleSendMessage = useCallback((content: string) => {
@@ -73,7 +106,27 @@ export default function SpacesPage() {
     });
   }, []);
 
-  const { startRedesign } = useRedesign(state, setState);
+  const currentSourceEntry = useMemo(
+    () =>
+      state.history.find((e) => e.id === state.currentSourceEntryId) ?? null,
+    [state.history, state.currentSourceEntryId],
+  );
+
+  const currentSourceImage = currentSourceEntry?.imageUrl ?? null;
+  const currentSourceKind = currentSourceEntry?.kind ?? null;
+  const hasUploads = state.history.some((e) => e.kind === 'upload');
+
+  const selectedEntry = useMemo(
+    () => state.history.find((e) => e.id === state.selectedEntryId) ?? null,
+    [state.history, state.selectedEntryId],
+  );
+
+  const canPromoteGeneration =
+    selectedEntry?.kind === 'generation' &&
+    selectedEntry.status === 'ready' &&
+    selectedEntry.id !== state.currentSourceEntryId;
+
+  const { startRedesign } = useRedesign({ currentSourceImage, setState });
 
   const handleSelectStyle = useCallback(
     (selection: StyleSelection) => startRedesign(selection),
@@ -86,19 +139,13 @@ export default function SpacesPage() {
       if (
         entry.kind === 'generation' &&
         entry.status === 'generating' &&
-        entry.sourceImageUrl === state.currentSourceImage
+        entry.sourceImageUrl === currentSourceImage
       ) {
         map[entry.styleKey] = entry.percentage;
       }
     }
     return map;
-  }, [state.history, state.currentSourceImage]);
-
-  const selectedEntry = useMemo(
-    () =>
-      state.history.find((e) => e.id === state.selectedEntryId) ?? null,
-    [state.history, state.selectedEntryId],
-  );
+  }, [state.history, currentSourceImage]);
 
   return (
     <MobileGate>
@@ -117,8 +164,14 @@ export default function SpacesPage() {
           <div className="flex h-full w-[60%] flex-col">
             <MainCanvas
               selectedEntry={selectedEntry}
-              currentSourceImage={state.currentSourceImage}
+              currentSourceImage={currentSourceImage}
+              currentSourceEntryId={state.currentSourceEntryId}
+              currentSourceKind={currentSourceKind}
+              hasUploads={hasUploads}
+              canPromoteGeneration={canPromoteGeneration}
               onImageUpload={handleImageUpload}
+              onSelectOriginal={handleSelectOriginal}
+              onPromoteGenerated={handlePromoteGenerated}
             />
             <HistorySlider
               history={state.history}

@@ -19,13 +19,18 @@ export interface StartRedesignArgs {
   styleImage?: string;
 }
 
-export function useRedesign(state: SpacesState, setState: SetSpacesState) {
+export interface UseRedesignArgs {
+  currentSourceImage: string | null;
+  setState: SetSpacesState;
+}
+
+export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
   const abortersRef = useRef(new Map<string, AbortController>());
-  const sourceRef = useRef<string | null>(state.currentSourceImage);
+  const sourceRef = useRef<string | null>(currentSourceImage);
 
   useEffect(() => {
-    sourceRef.current = state.currentSourceImage;
-  }, [state.currentSourceImage]);
+    sourceRef.current = currentSourceImage;
+  }, [currentSourceImage]);
 
   useEffect(() => {
     const aborters = abortersRef.current;

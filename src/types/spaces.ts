@@ -59,6 +59,6 @@ export interface SpacesState {
   activeNav: NavId;
   history: HistoryEntry[];
   messages: ChatMessage[];
-  currentSourceImage: string | null;
+  currentSourceEntryId: string | null;
   selectedEntryId: string | null;
 }
