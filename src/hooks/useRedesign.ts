@@ -17,6 +17,7 @@ export interface StartRedesignArgs {
   styleKey: string;
   styleLabel: string;
   styleImage?: string;
+  prompt?: string;
 }
 
 export interface UseRedesignArgs {
@@ -61,7 +62,7 @@ export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
   );
 
   const startRedesign = useCallback(
-    ({ styleKey, styleLabel, styleImage }: StartRedesignArgs) => {
+    ({ styleKey, styleLabel, styleImage, prompt }: StartRedesignArgs) => {
       const source = sourceRef.current;
       if (!source) {
         toast.error('Upload an image first to start a redesign.');
@@ -86,6 +87,7 @@ export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
         styleKey,
         styleLabel,
         styleImage,
+        prompt,
         sourceImageUrl: source,
         imageUrl: null,
         percentage: 0,
@@ -99,6 +101,7 @@ export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
         sourceImageUrl: source,
         styleLabel,
         styleImage,
+        prompt,
         onProgress: (percentage) => patchEntry(id, { percentage }),
         signal: controller.signal,
       })

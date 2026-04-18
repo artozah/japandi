@@ -7,13 +7,15 @@ import { MobileGate } from '@/components/spaces/MobileGate';
 import { RightChat } from '@/components/spaces/RightChat';
 import { SpacesHeader } from '@/components/spaces/SpacesHeader';
 import { useRedesign } from '@/hooks/useRedesign';
+import { streamChat } from '@/lib/chat-stream';
 import type {
   ChatMessage,
   HistoryEntry,
   NavId,
   SpacesState,
 } from '@/types/spaces';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function SpacesPage() {
   const [state, setState] = useState<SpacesState>({
@@ -84,27 +86,107 @@ export default function SpacesPage() {
     });
   }, []);
 
-  const handleSendMessage = useCallback((content: string) => {
-    setState((prev) => {
+  const chatAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      chatAbortRef.current?.abort();
+    };
+  }, []);
+
+  const patchMessage = useCallback(
+    (id: string, patch: Partial<ChatMessage>) => {
+      setState((prev) => {
+        const target = prev.messages.find((m) => m.id === id);
+        if (!target) return prev;
+        const keys = Object.keys(patch) as Array<keyof ChatMessage>;
+        const changed = keys.some((key) => patch[key] !== target[key]);
+        if (!changed) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) =>
+            m.id === id ? { ...m, ...patch } : m,
+          ),
+        };
+      });
+    },
+    [],
+  );
+
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      if (chatAbortRef.current) return;
+
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
         content,
         timestamp: Date.now(),
+        status: 'complete',
       };
-      const aiMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+      const assistantId = crypto.randomUUID();
+      const assistantMsg: ChatMessage = {
+        id: assistantId,
         role: 'assistant',
-        content:
-          'Thanks for your message! AI integration is coming soon. For now, try uploading an image to explore the editor.',
+        content: '',
         timestamp: Date.now() + 1,
+        status: 'streaming',
       };
-      return {
-        ...prev,
-        messages: [...prev.messages, userMsg, aiMsg],
-      };
-    });
-  }, []);
+
+      let historyForRequest: ChatMessage[] = [];
+      let sourceForRequest: string | null = null;
+      setState((prev) => {
+        historyForRequest = [...prev.messages, userMsg];
+        const sourceEntry = prev.history.find(
+          (e) => e.id === prev.currentSourceEntryId,
+        );
+        sourceForRequest = sourceEntry?.imageUrl ?? null;
+        return {
+          ...prev,
+          messages: [...prev.messages, userMsg, assistantMsg],
+        };
+      });
+
+      const controller = new AbortController();
+      chatAbortRef.current = controller;
+
+      streamChat(
+        { messages: historyForRequest, sourceImage: sourceForRequest },
+        {
+          onText: (delta) => {
+            setState((prev) => {
+              const target = prev.messages.find((m) => m.id === assistantId);
+              if (!target) return prev;
+              return {
+                ...prev,
+                messages: prev.messages.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: m.content + delta }
+                    : m,
+                ),
+              };
+            });
+          },
+          onProposed: (proposal) => {
+            patchMessage(assistantId, { proposedPrompt: proposal });
+          },
+          onDone: () => {
+            patchMessage(assistantId, { status: 'complete' });
+          },
+          onError: (message) => {
+            patchMessage(assistantId, { status: 'error' });
+            toast.error(message);
+          },
+        },
+        controller.signal,
+      ).finally(() => {
+        if (chatAbortRef.current === controller) {
+          chatAbortRef.current = null;
+        }
+      });
+    },
+    [patchMessage],
+  );
 
   const currentSourceEntry = useMemo(
     () =>
@@ -132,6 +214,28 @@ export default function SpacesPage() {
     (selection: StyleSelection) => startRedesign(selection),
     [startRedesign],
   );
+
+  const handleClearChat = useCallback(() => {
+    chatAbortRef.current?.abort();
+    chatAbortRef.current = null;
+    setState((prev) => (prev.messages.length === 0 ? prev : { ...prev, messages: [] }));
+  }, []);
+
+  const handleGenerateFromChat = useCallback(
+    (messageId: string) => {
+      const msg = state.messages.find((m) => m.id === messageId);
+      if (!msg?.proposedPrompt) return;
+      startRedesign({
+        styleKey: `chat:${messageId}`,
+        styleLabel: msg.proposedPrompt.label,
+        prompt: msg.proposedPrompt.prompt,
+      });
+    },
+    [state.messages, startRedesign],
+  );
+
+  const isChatStreaming = state.messages.some((m) => m.status === 'streaming');
+  const hasSource = currentSourceImage !== null;
 
   const inFlightByStyleKey = useMemo(() => {
     const map: Record<string, number> = {};
@@ -181,7 +285,11 @@ export default function SpacesPage() {
           </div>
           <RightChat
             messages={state.messages}
+            isStreaming={isChatStreaming}
+            hasSource={hasSource}
             onSendMessage={handleSendMessage}
+            onGenerateFromChat={handleGenerateFromChat}
+            onClearChat={handleClearChat}
           />
         </div>
       </div>

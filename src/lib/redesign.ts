@@ -2,6 +2,7 @@ export interface RunRedesignArgs {
   sourceImageUrl: string;
   styleLabel: string;
   styleImage?: string;
+  prompt?: string;
   onProgress: (percentage: number) => void;
   signal?: AbortSignal;
 }

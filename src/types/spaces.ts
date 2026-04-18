@@ -38,6 +38,7 @@ export interface GenerationHistoryEntry {
   styleKey: string;
   styleLabel: string;
   styleImage?: string;
+  prompt?: string;
   sourceImageUrl: string;
   imageUrl: string | null;
   percentage: number;
@@ -48,11 +49,20 @@ export interface GenerationHistoryEntry {
 
 export type HistoryEntry = UploadHistoryEntry | GenerationHistoryEntry;
 
+export type ChatMessageStatus = 'streaming' | 'complete' | 'error';
+
+export interface ProposedPrompt {
+  prompt: string;
+  label: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  status?: ChatMessageStatus;
+  proposedPrompt?: ProposedPrompt;
 }
 
 export interface SpacesState {
