@@ -105,7 +105,7 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl }: BeforeAfterSliderProp
         aria-valuemax={100}
         role="slider"
         onKeyDown={handleKeyDown}
-        className="absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-black/10 bg-white text-foreground shadow-md outline-none focus-visible:ring-2 focus-visible:ring-foreground"
+        className="absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-black/10 bg-white text-stone-900 shadow-md outline-none focus-visible:ring-2 focus-visible:ring-foreground"
         style={{ left: `${position}%` }}
       >
         <span className="flex items-center">
