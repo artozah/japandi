@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { runRedesign } from '@/lib/redesign';
+import { buildFallbackPrompt, runRedesign } from '@/lib/redesign';
 import type {
   GenerationHistoryEntry,
   HistoryEntry,
@@ -21,17 +21,17 @@ export interface StartRedesignArgs {
 }
 
 export interface UseRedesignArgs {
-  currentSourceImage: string | null;
+  currentSourceEntry: HistoryEntry | null;
   setState: SetSpacesState;
 }
 
-export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
+export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
   const abortersRef = useRef(new Map<string, AbortController>());
-  const sourceRef = useRef<string | null>(currentSourceImage);
+  const sourceEntryRef = useRef<HistoryEntry | null>(currentSourceEntry);
 
   useEffect(() => {
-    sourceRef.current = currentSourceImage;
-  }, [currentSourceImage]);
+    sourceEntryRef.current = currentSourceEntry;
+  }, [currentSourceEntry]);
 
   useEffect(() => {
     const aborters = abortersRef.current;
@@ -63,12 +63,11 @@ export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
 
   const startRedesign = useCallback(
     ({ styleKey, styleLabel, styleImage, prompt }: StartRedesignArgs) => {
-      const source = sourceRef.current;
-      if (!source) {
+      const sourceEntry = sourceEntryRef.current;
+      if (!sourceEntry || !sourceEntry.imageUrl) {
         toast.error('Upload an image first to start a redesign.');
         return;
       }
-
       if (abortersRef.current.size >= MAX_PARALLEL) {
         toast.warning(
           `You can run up to ${MAX_PARALLEL} redesigns at once — please wait for one to finish.`,
@@ -76,39 +75,43 @@ export function useRedesign({ currentSourceImage, setState }: UseRedesignArgs) {
         return;
       }
 
-      const id = crypto.randomUUID();
+      const derivedPrompt = prompt ?? buildFallbackPrompt(styleLabel);
       const controller = new AbortController();
+      const id = crypto.randomUUID();
       abortersRef.current.set(id, controller);
 
-      const entry: HistoryEntry = {
+      const entry: GenerationHistoryEntry = {
         id,
         kind: 'generation',
         status: 'generating',
         styleKey,
         styleLabel,
         styleImage,
-        prompt,
-        sourceImageUrl: source,
+        prompt: derivedPrompt,
+        sourceImageUrl: sourceEntry.imageUrl,
         imageUrl: null,
         percentage: 0,
         timestamp: Date.now(),
         label: styleLabel,
       };
-
       setState((prev) => ({ ...prev, history: [...prev.history, entry] }));
 
       runRedesign({
-        sourceImageUrl: source,
+        id,
+        sourceUploadId:
+          sourceEntry.kind === 'upload' ? sourceEntry.id : undefined,
+        sourceGenerationId:
+          sourceEntry.kind === 'generation' ? sourceEntry.id : undefined,
+        styleKey,
         styleLabel,
-        styleImage,
-        prompt,
+        prompt: derivedPrompt,
         onProgress: (percentage) => patchEntry(id, { percentage }),
         signal: controller.signal,
       })
-        .then((resultUrl) => {
+        .then((result) => {
           patchEntry(id, {
             status: 'ready',
-            imageUrl: resultUrl,
+            imageUrl: result.imageUrl,
             percentage: 100,
           });
           toast.success(`${styleLabel} redesign is ready.`);

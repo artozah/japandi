@@ -1,66 +1,122 @@
-export interface RunRedesignArgs {
-  sourceImageUrl: string;
+import { safeReadError } from '@/lib/http';
+
+export interface GenerationRow {
+  id: string;
+  status: 'pending' | 'running' | 'ready' | 'error';
+  percentage: number;
+  outputBlobUrl: string | null;
+  errorMessage: string | null;
+  styleKey: string;
   styleLabel: string;
-  styleImage?: string;
-  prompt?: string;
+  prompt: string | null;
+  sourceUploadId: string | null;
+  sourceGenerationId: string | null;
+  createdAt: string;
+}
+
+export interface RunRedesignArgs {
+  id: string;
+  sourceUploadId?: string;
+  sourceGenerationId?: string;
+  styleKey: string;
+  styleLabel: string;
+  prompt: string;
   onProgress: (percentage: number) => void;
   signal?: AbortSignal;
 }
 
-const MIN_DURATION_MS = 8_000;
-const MAX_DURATION_MS = 16_000;
-const FAILURE_RATE = 0.1;
+export interface RedesignResult {
+  generationId: string;
+  imageUrl: string;
+}
 
-export function runRedesign({
-  sourceImageUrl,
-  styleImage,
-  onProgress,
-  signal,
-}: RunRedesignArgs): Promise<string> {
-  const duration = MIN_DURATION_MS + Math.random() * (MAX_DURATION_MS - MIN_DURATION_MS);
-  const start = Date.now();
+const EXPECTED_DURATION_MS = 6_000;
+const POLL_INTERVAL_MS = 1500;
+const TICK_INTERVAL_MS = 150;
+const PROGRESS_CAP = 95;
+const MAX_POLL_DURATION_MS = 10 * 60 * 1000;
 
-  return new Promise((resolve, reject) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult> {
+  const startTime = Date.now();
+  let lastPct = -1;
+  const tickInterval = setInterval(() => {
+    if (args.signal?.aborted) return;
+    const elapsed = Date.now() - startTime;
+    const ratio = 1 - Math.exp(-elapsed / EXPECTED_DURATION_MS);
+    const pct = Math.min(PROGRESS_CAP, Math.round(ratio * PROGRESS_CAP));
+    if (pct !== lastPct) {
+      lastPct = pct;
+      args.onProgress(pct);
+    }
+  }, TICK_INTERVAL_MS);
 
-    const abort = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
+  try {
+    const createRes = await fetch('/api/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: args.id,
+        sourceUploadId: args.sourceUploadId,
+        sourceGenerationId: args.sourceGenerationId,
+        styleKey: args.styleKey,
+        styleLabel: args.styleLabel,
+        prompt: args.prompt,
+      }),
+      signal: args.signal,
+    });
 
-    if (signal) {
-      if (signal.aborted) {
-        abort();
-        return;
-      }
-      signal.addEventListener('abort', abort, { once: true });
+    if (!createRes.ok) {
+      const err = await safeReadError(createRes);
+      throw new Error(err ?? 'Failed to start generation');
     }
 
-    const tick = () => {
-      if (signal?.aborted) return;
-      const elapsed = Date.now() - start;
-      const progress = Math.min(1, elapsed / duration);
-      const pct = Math.min(99, Math.round(progress * 100));
-      onProgress(pct);
-
-      if (progress >= 1) {
-        signal?.removeEventListener('abort', abort);
-        if (Math.random() < FAILURE_RATE) {
-          reject(new Error('Generation failed — please try again'));
-          return;
-        }
-        onProgress(100);
-        // Mock stand-in: return the style's reference image so the before/after
-        // slider shows two different images. Badge selections have no styleImage
-        // and fall back to the source — a real backend would replace this entirely.
-        resolve(styleImage ?? sourceImageUrl);
-        return;
+    while (true) {
+      if (args.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      if (Date.now() - startTime > MAX_POLL_DURATION_MS) {
+        throw new Error('Generation timed out');
       }
 
-      const delay = 150 + Math.random() * 200;
-      timeoutId = setTimeout(tick, delay);
-    };
+      await sleep(POLL_INTERVAL_MS, args.signal);
 
-    tick();
+      try {
+        const res = await fetch(`/api/generations/${args.id}`, {
+          signal: args.signal,
+        });
+        if (!res.ok) continue;
+        const { generation: row } = (await res.json()) as { generation: GenerationRow };
+        if (row.status === 'ready' && row.outputBlobUrl) {
+          return { generationId: row.id, imageUrl: row.outputBlobUrl };
+        }
+        if (row.status === 'error') {
+          throw new Error(row.errorMessage ?? 'Generation failed');
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') throw err;
+      }
+    }
+  } finally {
+    clearInterval(tickInterval);
+  }
+}
+
+export function buildFallbackPrompt(styleLabel: string): string {
+  return `Redesign this interior in ${styleLabel} style. Preserve the original layout, camera angle, and architectural features. Photorealistic, high detail, natural lighting.`;
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }

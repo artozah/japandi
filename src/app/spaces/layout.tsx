@@ -1,16 +1,20 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import { ensureUserRow, requireUserId } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Spaces — Japandi',
   description: 'AI-powered interior design editor.',
 };
 
-export default function SpacesLayout({
+export default async function SpacesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const userId = await requireUserId();
+  await ensureUserRow(userId);
+
   return (
     <div className="h-dvh w-dvw overflow-hidden">
       {children}

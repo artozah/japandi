@@ -2,44 +2,55 @@
 
 import { BeforeAfterSlider } from '@/components/spaces/BeforeAfterSlider';
 import { SourceSwitcher } from '@/components/spaces/SourceSwitcher';
+import { uploadImage, type UploadedImage } from '@/lib/uploads';
 import type { HistoryEntry } from '@/types/spaces';
-import { Upload } from 'lucide-react';
-import { useCallback } from 'react';
+import { Loader2, Upload } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface MainCanvasProps {
   selectedEntry: HistoryEntry | null;
-  currentSourceImage: string | null;
-  currentSourceEntryId: string | null;
-  currentSourceKind: HistoryEntry['kind'] | null;
+  currentSourceEntry: HistoryEntry | null;
   hasUploads: boolean;
   canPromoteGeneration: boolean;
-  onImageUpload: (dataUrl: string) => void;
+  isHydrating: boolean;
+  onImageUpload: (image: UploadedImage) => void;
   onSelectOriginal: () => void;
   onPromoteGenerated: () => void;
 }
 
 export function MainCanvas({
   selectedEntry,
-  currentSourceImage,
-  currentSourceEntryId,
-  currentSourceKind,
+  currentSourceEntry,
   hasUploads,
   canPromoteGeneration,
+  isHydrating,
   onImageUpload,
   onSelectOriginal,
   onPromoteGenerated,
 }: MainCanvasProps) {
+  const currentSourceImage = currentSourceEntry?.imageUrl ?? null;
+  const currentSourceKind = currentSourceEntry?.kind ?? null;
+  const currentSourceEntryId = currentSourceEntry?.id ?? null;
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadingRef = useRef(false);
+
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === 'string') {
-          onImageUpload(result);
-        }
-      };
-      reader.readAsDataURL(file);
+      if (uploadingRef.current) return;
+      uploadingRef.current = true;
+      setIsUploading(true);
+      try {
+        const image = await uploadImage(file);
+        onImageUpload(image);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        toast.error(message);
+      } finally {
+        uploadingRef.current = false;
+        setIsUploading(false);
+      }
     },
     [onImageUpload],
   );
@@ -65,6 +76,14 @@ export function MainCanvas({
     [handleFile],
   );
 
+  if (isHydrating) {
+    return (
+      <div className="flex h-[80%] w-full items-center justify-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!currentSourceImage) {
     return (
       <div
@@ -72,20 +91,28 @@ export function MainCanvas({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-muted-foreground hover:bg-muted/50">
-          <Upload className="h-10 w-10 text-muted-foreground" />
+        <label
+          aria-busy={isUploading}
+          className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-muted-foreground hover:bg-muted/50 aria-busy:cursor-wait aria-busy:opacity-75"
+        >
+          {isUploading ? (
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          ) : (
+            <Upload className="h-10 w-10 text-muted-foreground" />
+          )}
           <div className="text-center">
             <span className="text-sm font-medium text-foreground">
-              Upload an image
+              {isUploading ? 'Uploading…' : 'Upload an image'}
             </span>
             <p className="mt-1 text-xs text-muted-foreground">
-              or drag and drop here
+              {isUploading ? 'Please wait' : 'or drag and drop here'}
             </p>
           </div>
           <input
             type="file"
             accept="image/*"
             className="hidden"
+            disabled={isUploading}
             onChange={handleInputChange}
           />
         </label>

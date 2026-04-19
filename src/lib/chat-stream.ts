@@ -10,10 +10,12 @@ export interface StreamChatHandlers {
 export interface StreamChatArgs {
   messages: ChatMessage[];
   sourceImage?: string | null;
+  userMessageId: string;
+  assistantMessageId: string;
 }
 
 export async function streamChat(
-  { messages, sourceImage }: StreamChatArgs,
+  { messages, sourceImage, userMessageId, assistantMessageId }: StreamChatArgs,
   handlers: StreamChatHandlers,
   signal: AbortSignal,
 ): Promise<void> {
@@ -22,7 +24,12 @@ export async function streamChat(
     response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, sourceImage }),
+      body: JSON.stringify({
+        messages,
+        sourceImage,
+        userMessageId,
+        assistantMessageId,
+      }),
       signal,
     });
   } catch (err) {

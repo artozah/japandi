@@ -8,6 +8,8 @@ import { RightChat } from '@/components/spaces/RightChat';
 import { SpacesHeader } from '@/components/spaces/SpacesHeader';
 import { useRedesign } from '@/hooks/useRedesign';
 import { streamChat } from '@/lib/chat-stream';
+import type { GenerationRow } from '@/lib/redesign';
+import type { UploadedImage } from '@/lib/uploads';
 import type {
   ChatMessage,
   HistoryEntry,
@@ -17,6 +19,21 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+interface UploadRow {
+  id: string;
+  blobUrl: string;
+  createdAt: string;
+}
+
+interface ChatMessageRow {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  status: 'complete' | 'error';
+  proposedPrompt: { prompt: string; label: string } | null;
+  createdAt: string;
+}
+
 export default function SpacesPage() {
   const [state, setState] = useState<SpacesState>({
     activeNav: 'style',
@@ -25,18 +42,134 @@ export default function SpacesPage() {
     currentSourceEntryId: null,
     selectedEntryId: null,
   });
+  const [isHydrating, setIsHydrating] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const [uploadsRes, generationsRes, sessionRes] = await Promise.all([
+          fetch('/api/uploads', { signal: controller.signal }),
+          fetch('/api/generations', { signal: controller.signal }),
+          fetch('/api/chat/session', { signal: controller.signal }),
+        ]);
+        if (!uploadsRes.ok) throw new Error('Failed to load uploads');
+        if (!generationsRes.ok) throw new Error('Failed to load generations');
+        if (!sessionRes.ok) throw new Error('Failed to load chat session');
+
+        const uploadsData = (await uploadsRes.json()) as {
+          uploads: UploadRow[];
+        };
+        const generationsData = (await generationsRes.json()) as {
+          generations: GenerationRow[];
+        };
+        const sessionData = (await sessionRes.json()) as {
+          session: { id: string };
+          messages: ChatMessageRow[];
+        };
+
+        const uploadsByIdAsc = [...uploadsData.uploads].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+        const uploadEntries: HistoryEntry[] = uploadsByIdAsc.map((row, idx) => ({
+          id: row.id,
+          kind: 'upload',
+          imageUrl: row.blobUrl,
+          timestamp: new Date(row.createdAt).getTime(),
+          label: `Upload ${idx + 1}`,
+        }));
+        const uploadUrlById = new Map(
+          uploadsByIdAsc.map((row) => [row.id, row.blobUrl] as const),
+        );
+
+        const generationsByIdAsc = [...generationsData.generations].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+        const generationOutputById = new Map(
+          generationsByIdAsc.map(
+            (row) => [row.id, row.outputBlobUrl] as const,
+          ),
+        );
+        const generationEntries: HistoryEntry[] = generationsByIdAsc.flatMap(
+          (row) => {
+            const sourceImageUrl = row.sourceUploadId
+              ? uploadUrlById.get(row.sourceUploadId) ?? null
+              : row.sourceGenerationId
+                ? generationOutputById.get(row.sourceGenerationId) ?? null
+                : null;
+            if (!sourceImageUrl) return [];
+            return [
+              {
+                id: row.id,
+                kind: 'generation',
+                status:
+                  row.status === 'ready'
+                    ? 'ready'
+                    : row.status === 'error'
+                      ? 'error'
+                      : 'generating',
+                styleKey: row.styleKey,
+                styleLabel: row.styleLabel,
+                prompt: row.prompt ?? undefined,
+                sourceImageUrl,
+                imageUrl: row.outputBlobUrl,
+                percentage: row.percentage,
+                errorMessage: row.errorMessage ?? undefined,
+                timestamp: new Date(row.createdAt).getTime(),
+                label: row.styleLabel,
+              },
+            ];
+          },
+        );
+
+        const chatMessages: ChatMessage[] = sessionData.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.createdAt).getTime(),
+          status: m.status,
+          proposedPrompt: m.proposedPrompt ?? undefined,
+        }));
+
+        setState((prev) => {
+          const combined = [...uploadEntries, ...generationEntries].sort(
+            (a, b) => a.timestamp - b.timestamp,
+          );
+          const latestUpload = uploadEntries[uploadEntries.length - 1];
+          return {
+            ...prev,
+            history: combined,
+            messages: chatMessages,
+            currentSourceEntryId: latestUpload?.id ?? null,
+            selectedEntryId: latestUpload?.id ?? null,
+          };
+        });
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : 'Failed to load history';
+        toast.error(message);
+      } finally {
+        if (!controller.signal.aborted) setIsHydrating(false);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   const handleNavChange = useCallback((id: NavId) => {
     setState((prev) => ({ ...prev, activeNav: id }));
   }, []);
 
-  const handleImageUpload = useCallback((dataUrl: string) => {
+  const handleImageUpload = useCallback((image: UploadedImage) => {
     setState((prev) => {
+      if (prev.history.some((e) => e.id === image.id)) return prev;
       const entry: HistoryEntry = {
-        id: crypto.randomUUID(),
+        id: image.id,
         kind: 'upload',
-        imageUrl: dataUrl,
-        timestamp: Date.now(),
+        imageUrl: image.url,
+        timestamp: new Date(image.createdAt).getTime(),
         label: `Upload ${prev.history.filter((e) => e.kind === 'upload').length + 1}`,
       };
       return {
@@ -117,14 +250,15 @@ export default function SpacesPage() {
     (content: string) => {
       if (chatAbortRef.current) return;
 
+      const userMessageId = crypto.randomUUID();
+      const assistantId = crypto.randomUUID();
       const userMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: userMessageId,
         role: 'user',
         content,
         timestamp: Date.now(),
         status: 'complete',
       };
-      const assistantId = crypto.randomUUID();
       const assistantMsg: ChatMessage = {
         id: assistantId,
         role: 'assistant',
@@ -151,7 +285,12 @@ export default function SpacesPage() {
       chatAbortRef.current = controller;
 
       streamChat(
-        { messages: historyForRequest, sourceImage: sourceForRequest },
+        {
+          messages: historyForRequest,
+          sourceImage: sourceForRequest,
+          userMessageId,
+          assistantMessageId: assistantId,
+        },
         {
           onText: (delta) => {
             setState((prev) => {
@@ -195,7 +334,6 @@ export default function SpacesPage() {
   );
 
   const currentSourceImage = currentSourceEntry?.imageUrl ?? null;
-  const currentSourceKind = currentSourceEntry?.kind ?? null;
   const hasUploads = state.history.some((e) => e.kind === 'upload');
 
   const selectedEntry = useMemo(
@@ -208,7 +346,7 @@ export default function SpacesPage() {
     selectedEntry.status === 'ready' &&
     selectedEntry.id !== state.currentSourceEntryId;
 
-  const { startRedesign } = useRedesign({ currentSourceImage, setState });
+  const { startRedesign } = useRedesign({ currentSourceEntry, setState });
 
   const handleSelectStyle = useCallback(
     (selection: StyleSelection) => startRedesign(selection),
@@ -219,6 +357,9 @@ export default function SpacesPage() {
     chatAbortRef.current?.abort();
     chatAbortRef.current = null;
     setState((prev) => (prev.messages.length === 0 ? prev : { ...prev, messages: [] }));
+    fetch('/api/chat/session', { method: 'DELETE' }).catch(() => {
+      toast.error('Failed to clear chat on the server.');
+    });
   }, []);
 
   const handleGenerateFromChat = useCallback(
@@ -268,11 +409,10 @@ export default function SpacesPage() {
           <div className="flex h-full w-[60%] flex-col">
             <MainCanvas
               selectedEntry={selectedEntry}
-              currentSourceImage={currentSourceImage}
-              currentSourceEntryId={state.currentSourceEntryId}
-              currentSourceKind={currentSourceKind}
+              currentSourceEntry={currentSourceEntry}
               hasUploads={hasUploads}
               canPromoteGeneration={canPromoteGeneration}
+              isHydrating={isHydrating}
               onImageUpload={handleImageUpload}
               onSelectOriginal={handleSelectOriginal}
               onPromoteGenerated={handlePromoteGenerated}

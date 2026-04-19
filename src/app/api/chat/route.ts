@@ -1,4 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { ensureUserRow, requireUserId } from '@/lib/auth';
+import { ensureChatSession, persistMessage } from '@/lib/chat-session';
+import { isUuid, isVercelBlobUrl } from '@/lib/validation';
 import type { ChatMessage } from '@/types/spaces';
 
 export const runtime = 'nodejs';
@@ -56,14 +59,33 @@ const SUPPORTED_IMAGE_MEDIA_TYPES: readonly SupportedImageMediaType[] = [
   'image/webp',
 ];
 
-function parseDataUrl(
-  dataUrl: string,
-): { mediaType: SupportedImageMediaType; data: string } | null {
-  const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
-  if (!match) return null;
-  const mediaType = match[1] as SupportedImageMediaType;
-  if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(mediaType)) return null;
-  return { mediaType, data: match[2] };
+type ImageSource =
+  | { type: 'base64'; media_type: SupportedImageMediaType; data: string }
+  | { type: 'url'; url: string };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+function toImageSource(value: string): ImageSource | null {
+  if (value.startsWith('data:')) {
+    const match = /^data:([^;,]+);base64,(.+)$/.exec(value);
+    if (!match) return null;
+    const mediaType = match[1] as SupportedImageMediaType;
+    if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(mediaType)) return null;
+    return { type: 'base64', media_type: mediaType, data: match[2] };
+  }
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:') return null;
+    if (!parsed.hostname.endsWith('.blob.vercel-storage.com')) return null;
+    return { type: 'url', url: value };
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -75,7 +97,15 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { messages?: ChatMessage[]; sourceImage?: string | null };
+  const userId = await requireUserId();
+  await ensureUserRow(userId);
+
+  let body: {
+    messages?: ChatMessage[];
+    sourceImage?: string | null;
+    userMessageId?: string;
+    assistantMessageId?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -89,6 +119,29 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  if (!body.userMessageId || !body.assistantMessageId) {
+    return Response.json(
+      { error: 'userMessageId and assistantMessageId are required.' },
+      { status: 400 },
+    );
+  }
+  if (!isUuid(body.userMessageId) || !isUuid(body.assistantMessageId)) {
+    return Response.json(
+      { error: 'userMessageId and assistantMessageId must be UUIDs.' },
+      { status: 400 },
+    );
+  }
+
+  const sessionId = await ensureChatSession(userId);
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (lastUser?.content.trim()) {
+    await persistMessage({
+      sessionId,
+      id: body.userMessageId,
+      role: 'user',
+      content: lastUser.content,
+    });
+  }
 
   const anthropicMessages: Anthropic.MessageParam[] = messages
     .filter((m) => m.content.trim().length > 0)
@@ -101,8 +154,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const imagePart = body.sourceImage ? parseDataUrl(body.sourceImage) : null;
-  if (imagePart) {
+  const imageSource = body.sourceImage ? toImageSource(body.sourceImage) : null;
+  if (imageSource) {
     for (let i = anthropicMessages.length - 1; i >= 0; i--) {
       const msg = anthropicMessages[i];
       if (msg.role !== 'user') continue;
@@ -110,14 +163,7 @@ export async function POST(request: Request) {
       anthropicMessages[i] = {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: imagePart.mediaType,
-              data: imagePart.data,
-            },
-          },
+          { type: 'image', source: imageSource },
           { type: 'text', text: textContent },
         ],
       };
@@ -127,6 +173,7 @@ export async function POST(request: Request) {
 
   const client = new Anthropic({ apiKey });
 
+  const assistantMessageId = body.assistantMessageId;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const abortSignal = request.signal;
@@ -141,7 +188,12 @@ export async function POST(request: Request) {
       const onAbort = () => messageStream.abort();
       abortSignal.addEventListener('abort', onAbort, { once: true });
 
+      let accumulatedText = '';
+      let proposed: { prompt: string; label: string } | null = null;
+      let finalStatus: 'complete' | 'error' = 'complete';
+
       messageStream.on('text', (delta) => {
+        accumulatedText += delta;
         controller.enqueue(encodeSSE('text', { delta }));
       });
 
@@ -154,26 +206,38 @@ export async function POST(request: Request) {
               typeof input.prompt === 'string' &&
               typeof input.label === 'string'
             ) {
-              controller.enqueue(
-                encodeSSE('proposed', {
-                  prompt: input.prompt,
-                  label: input.label,
-                }),
-              );
+              proposed = { prompt: input.prompt, label: input.label };
+              controller.enqueue(encodeSSE('proposed', proposed));
             }
           }
         }
         controller.enqueue(encodeSSE('done', {}));
       } catch (err) {
-        if (abortSignal.aborted) {
-          controller.close();
-          return;
+        if (!abortSignal.aborted) {
+          finalStatus = 'error';
+          const message =
+            err instanceof Error ? err.message : 'Unknown streaming error';
+          controller.enqueue(encodeSSE('error', { message }));
         }
-        const message =
-          err instanceof Error ? err.message : 'Unknown streaming error';
-        controller.enqueue(encodeSSE('error', { message }));
       } finally {
         abortSignal.removeEventListener('abort', onAbort);
+        if (accumulatedText.length > 0 || proposed) {
+          try {
+            await persistMessage({
+              sessionId,
+              id: assistantMessageId,
+              role: 'assistant',
+              content: accumulatedText,
+              status: finalStatus,
+              proposedPrompt: proposed,
+            });
+          } catch (persistErr) {
+            console.error(
+              '[api/chat] Failed to persist assistant message:',
+              persistErr,
+            );
+          }
+        }
         controller.close();
       }
     },
