@@ -15,6 +15,7 @@
   --secondary-foreground: #1c1917;
   --card: #ffffff;
   --card-foreground: #1c1917;
+  --chat-font-size: 0.75rem;
 }
 
 @theme inline {
@@ -36,8 +37,29 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Shared dark palette — applied when the user explicitly picks dark OR when
+   the OS prefers dark AND the user hasn't overridden. Explicit html.light
+   wins over @media so users can force light even on a dark-mode device. */
+
+html.dark {
+  --background: #0d1220;
+  --foreground: #d8dee9;
+  --muted: #151b2a;
+  --muted-foreground: #7a8294;
+  --accent: #d8dee9;
+  --accent-foreground: #0d1220;
+  --border: #1f2638;
+  --ring: #3a4358;
+  --primary: #d8dee9;
+  --primary-foreground: #0d1220;
+  --secondary: #151b2a;
+  --secondary-foreground: #d8dee9;
+  --card: #151b2a;
+  --card-foreground: #d8dee9;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not(.light):not(.dark) {
     --background: #0d1220;
     --foreground: #d8dee9;
     --muted: #151b2a;
@@ -55,8 +77,35 @@
   }
 }
 
+/* Chat font size override driven by <html data-chat-font-size="sm|md|lg"> */
+html[data-chat-font-size="sm"] {
+  --chat-font-size: 0.7rem;
+}
+html[data-chat-font-size="md"] {
+  --chat-font-size: 0.82rem;
+}
+html[data-chat-font-size="lg"] {
+  --chat-font-size: 0.95rem;
+}
+[data-chat-surface] {
+  font-size: var(--chat-font-size);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+/* Tailwind v4 resets <button> to cursor: default. Restore the usual pointer
+   for interactive elements project-wide, while respecting disabled state. */
+button,
+[role="button"],
+a {
+  cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"],
+button[aria-disabled="true"] {
+  cursor: not-allowed;
 }

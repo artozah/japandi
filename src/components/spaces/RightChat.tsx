@@ -91,7 +91,11 @@ export function RightChat({
           New chat
         </button>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3">
+      <div
+        ref={scrollRef}
+        data-chat-surface
+        className="flex-1 overflow-y-auto p-3"
+      >
         <div className="flex flex-col gap-3">
           {allMessages.map((msg) => (
             <MessageBubble

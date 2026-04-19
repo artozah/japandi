@@ -20,6 +20,9 @@ importers:
       '@paddle/paddle-js':
         specifier: ^1.6.2
         version: 1.6.2
+      '@paddle/paddle-node-sdk':
+        specifier: ^3.7.0
+        version: 3.7.0
       '@vercel/blob':
         specifier: ^2.3.3
         version: 2.3.3
@@ -975,6 +978,10 @@ packages:
 
   '@paddle/paddle-js@1.6.2':
     resolution: {integrity: sha512-nx1NXCzwWUWjf0iaRDiXZlfWgFjNZ6996RFcTDk0G0ggzrh514Zsc6jGTPOUGdLB1sYJXVQiKKoNLoKoXhH+sA==}
+
+  '@paddle/paddle-node-sdk@3.7.0':
+    resolution: {integrity: sha512-VUlmBCGmCJU7mv1H/t7PDVg2GvnPy9tt3rnqbkf4BqpxL6zxKtgFxxXT/B7k6QX//L5lW6fC58ax/a86DJ/zcw==}
+    engines: {node: '>=20'}
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -3402,6 +3409,8 @@ snapshots:
   '@nolyfill/is-core-module@1.0.39': {}
 
   '@paddle/paddle-js@1.6.2': {}
+
+  '@paddle/paddle-node-sdk@3.7.0': {}
 
   '@rtsao/scc@1.1.0': {}
 

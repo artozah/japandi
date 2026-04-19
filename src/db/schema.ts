@@ -155,6 +155,18 @@ export const chatMessages = pgTable(
   (t) => [index('chat_messages_session_idx').on(t.sessionId, t.createdAt)],
 );
 
+export const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // No FK to users: retain feedback after account deletion (audit-style),
+  // same rationale as billing_events.
+  userId: text('user_id'),
+  message: text('message').notNull(),
+  contactEmail: text('contact_email'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Upload = typeof uploads.$inferSelect;
 export type Generation = typeof generations.$inferSelect;
@@ -162,3 +174,4 @@ export type ChatSession = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type BillingEvent = typeof billingEvents.$inferSelect;
+export type Feedback = typeof feedback.$inferSelect;

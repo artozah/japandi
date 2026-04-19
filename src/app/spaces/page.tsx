@@ -6,9 +6,9 @@ import { MainCanvas } from '@/components/spaces/MainCanvas';
 import { MobileGate } from '@/components/spaces/MobileGate';
 import { RightChat } from '@/components/spaces/RightChat';
 import { SpacesHeader } from '@/components/spaces/SpacesHeader';
+import { useGenerationActions } from '@/hooks/useGenerationActions';
 import { useRedesign } from '@/hooks/useRedesign';
 import { streamChat } from '@/lib/chat-stream';
-import { downloadBlobUrl } from '@/lib/download';
 import type { GenerationRow } from '@/lib/redesign';
 import type { UploadedImage } from '@/lib/uploads';
 import type {
@@ -166,17 +166,37 @@ export default function SpacesPage() {
           proposedPrompt: m.proposedPrompt ?? undefined,
         }));
 
+        const requestedSourceId =
+          new URLSearchParams(window.location.search).get(
+            'sourceGenerationId',
+          ) ?? null;
+        if (requestedSourceId) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('sourceGenerationId');
+          window.history.replaceState({}, '', url.toString());
+        }
+
         setState((prev) => {
           const combined = [...uploadEntries, ...generationEntries].sort(
             (a, b) => a.timestamp - b.timestamp,
           );
           const latestUpload = uploadEntries[uploadEntries.length - 1];
+          const requestedSource = requestedSourceId
+            ? combined.find(
+                (e) =>
+                  e.id === requestedSourceId &&
+                  e.kind === 'generation' &&
+                  e.status === 'ready',
+              )
+            : undefined;
+          const initialId =
+            requestedSource?.id ?? latestUpload?.id ?? null;
           return {
             ...prev,
             history: combined,
             messages: chatMessages,
-            currentSourceEntryId: latestUpload?.id ?? null,
-            selectedEntryId: latestUpload?.id ?? null,
+            currentSourceEntryId: initialId,
+            selectedEntryId: initialId,
           };
         });
       } catch (err) {
@@ -417,21 +437,12 @@ export default function SpacesPage() {
     [state.messages, startRedesign],
   );
 
+  const { downloadGeneration, deleteGeneration } = useGenerationActions();
+
   const handleDeleteGeneration = useCallback(
     async (id: string) => {
-      let ok = false;
-      try {
-        const res = await fetch(`/api/generations/${id}`, {
-          method: 'DELETE',
-        });
-        ok = res.ok || res.status === 404;
-      } catch {
-        ok = false;
-      }
-      if (!ok) {
-        toast.error('Failed to delete generation.');
-        return;
-      }
+      const { ok } = await deleteGeneration(id);
+      if (!ok) return;
 
       cancelRedesign(id);
       setState((prev) => {
@@ -454,25 +465,12 @@ export default function SpacesPage() {
       });
       toast.success('Deleted.');
     },
-    [cancelRedesign],
+    [cancelRedesign, deleteGeneration],
   );
 
   const handleDownloadGeneration = useCallback(
-    async (entry: GenerationHistoryEntry) => {
-      if (!entry.imageUrl) return;
-      const safeLabel =
-        entry.styleLabel
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '') || 'generation';
-      const filenameBase = `${safeLabel}-${entry.id.slice(0, 8)}`;
-      try {
-        await downloadBlobUrl(entry.imageUrl, filenameBase);
-      } catch {
-        toast.error('Download failed.');
-      }
-    },
-    [],
+    (entry: GenerationHistoryEntry) => downloadGeneration(entry),
+    [downloadGeneration],
   );
 
   const isChatStreaming = state.messages.some((m) => m.status === 'streaming');

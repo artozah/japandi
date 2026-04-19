@@ -6,9 +6,14 @@ import { useCallback, useRef, useState } from 'react';
 interface BeforeAfterSliderProps {
   beforeUrl: string;
   afterUrl: string;
+  fit?: 'cover' | 'contain';
 }
 
-export function BeforeAfterSlider({ beforeUrl, afterUrl }: BeforeAfterSliderProps) {
+export function BeforeAfterSlider({
+  beforeUrl,
+  afterUrl,
+  fit = 'cover',
+}: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [dragging, setDragging] = useState(false);
@@ -71,16 +76,18 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl }: BeforeAfterSliderProp
         className="absolute inset-0 bg-muted"
         style={{
           backgroundImage: `url(${beforeUrl})`,
-          backgroundSize: 'cover',
+          backgroundSize: fit,
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}
       />
       <div
         className="absolute inset-0 bg-muted"
         style={{
           backgroundImage: `url(${afterUrl})`,
-          backgroundSize: 'cover',
+          backgroundSize: fit,
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           clipPath: `inset(0 0 0 ${position}%)`,
         }}
       />

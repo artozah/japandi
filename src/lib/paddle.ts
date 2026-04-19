@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Environment, Paddle } from '@paddle/paddle-node-sdk';
 
 export type PlanKey = 'custom' | 'standard' | 'professional';
 
@@ -87,6 +88,40 @@ function parsePaddleSignature(header: string | null): PaddleSignature | null {
   const ts = Number(out.ts);
   if (!Number.isFinite(ts) || !out.h1) return null;
   return { timestamp: ts, h1: out.h1 };
+}
+
+let serverClient: Paddle | null = null;
+
+export function getPaddleServer(): Paddle | null {
+  if (serverClient) return serverClient;
+  const apiKey = process.env.PADDLE_API_KEY;
+  if (!apiKey) return null;
+  const env: Environment =
+    process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
+      ? Environment.production
+      : Environment.sandbox;
+  serverClient = new Paddle(apiKey, { environment: env });
+  return serverClient;
+}
+
+export async function cancelPaddleSubscription(
+  subscriptionId: string,
+): Promise<boolean> {
+  const client = getPaddleServer();
+  if (!client) return false;
+  try {
+    await client.subscriptions.cancel(subscriptionId, {
+      effectiveFrom: 'immediately',
+    });
+    return true;
+  } catch (err) {
+    console.warn(
+      '[paddle] subscriptions.cancel failed for',
+      subscriptionId,
+      err,
+    );
+    return false;
+  }
 }
 
 export function verifyWebhookSignature(

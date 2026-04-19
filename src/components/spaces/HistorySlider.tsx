@@ -1,10 +1,11 @@
 'use client';
 
 import { GenerationOverlay } from '@/components/spaces/GenerationOverlay';
+import { TileActions } from '@/components/ui/TileActions';
 import { useAutoResetState } from '@/hooks/useAutoResetState';
 import { cn } from '@/lib/utils';
 import type { GenerationHistoryEntry, HistoryEntry } from '@/types/spaces';
-import { AlertCircle, Check, Download, Trash2, X } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 interface HistorySliderProps {
   history: HistoryEntry[];
@@ -151,68 +152,16 @@ export function HistorySlider({
             )}
 
             {canAct && (
-              <div
-                className={cn(
-                  'absolute right-1.5 top-1.5 z-10 flex items-center gap-1 transition-opacity',
-                  isConfirming
-                    ? 'opacity-100'
-                    : 'opacity-0 group-hover/tile:opacity-100 group-focus-within/tile:opacity-100',
-                )}
-              >
-                {isConfirming ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmDelete(entry.id);
-                      }}
-                      className="flex items-center gap-0.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-700"
-                      aria-label="Confirm delete"
-                    >
-                      <Check className="h-3 w-3" />
-                      Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cancelConfirm();
-                      }}
-                      className="flex items-center gap-0.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-black/85"
-                      aria-label="Cancel delete"
-                    >
-                      <X className="h-3 w-3" />
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isReadyGeneration(entry)) onDownloadGeneration(entry);
-                      }}
-                      className="flex h-[22px] w-[22px] items-center justify-center rounded bg-black/55 text-white hover:bg-black/75"
-                      aria-label={`Download ${entry.styleLabel ?? ''}`.trim()}
-                    >
-                      <Download className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startConfirm(entry.id);
-                      }}
-                      className="flex h-[22px] w-[22px] items-center justify-center rounded bg-black/55 text-white hover:bg-red-600"
-                      aria-label={`Delete ${entry.styleLabel ?? ''}`.trim()}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </>
-                )}
-              </div>
+              <TileActions
+                label={entry.styleLabel ?? ''}
+                confirming={isConfirming}
+                onDownload={() => {
+                  if (isReadyGeneration(entry)) onDownloadGeneration(entry);
+                }}
+                onStartConfirm={() => startConfirm(entry.id)}
+                onConfirmDelete={() => confirmDelete(entry.id)}
+                onCancelConfirm={cancelConfirm}
+              />
             )}
           </div>
         );

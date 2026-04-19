@@ -1,6 +1,7 @@
 'use client';
 
 import { GenerationOverlay } from '@/components/spaces/GenerationOverlay';
+import { UserAccountWidget } from '@/components/spaces/UserAccountWidget';
 import { accordionData, navItems } from '@/data/spaces';
 import { cn } from '@/lib/utils';
 import type {
@@ -9,8 +10,9 @@ import type {
   NavId,
   StyleSelection,
 } from '@/types/spaces';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Images, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 
 export type { StyleSelection } from '@/types/spaces';
@@ -278,6 +280,18 @@ export function LeftMenu({
             </button>
           );
         })}
+        <div className="mt-auto flex flex-col items-center gap-2">
+          <Link
+            href="/library"
+            aria-label="View all generated"
+            title="View all generated"
+            className="flex w-10 flex-col items-center gap-1 rounded-lg px-1 py-2 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          >
+            <Images className="h-4 w-4" />
+            <span className="text-[10px] font-medium leading-none">Library</span>
+          </Link>
+          <UserAccountWidget />
+        </div>
       </div>
 
       {/* Accordion panel — key resets state when nav changes */}

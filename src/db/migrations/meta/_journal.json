@@ -22,6 +22,13 @@
       "when": 1776623457800,
       "tag": "0002_dizzy_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776629306829,
+      "tag": "0003_even_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }
