@@ -18,4 +18,8 @@ export const db = new Proxy({} as NeonHttpDatabase<typeof schema>, {
   },
 });
 
+export type DbExecutor =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export { schema };

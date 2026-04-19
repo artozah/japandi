@@ -4,8 +4,10 @@ import Link from 'next/link';
 const footerLinks = [
   { label: 'Home', href: '/' },
   { label: 'Spaces', href: '/spaces' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'Privacy', href: '#privacy' },
+  { label: 'Pricing', href: '/#pricing' },
+  { label: 'Terms', href: '/terms-and-conditions' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Refund', href: '/refund' },
 ];
 
 export function Footer() {

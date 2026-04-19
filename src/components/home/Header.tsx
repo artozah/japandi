@@ -9,7 +9,7 @@ import { useState } from 'react';
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Spaces', href: '/spaces' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Pricing', href: '/#pricing' },
 ];
 
 export function Header() {

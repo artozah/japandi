@@ -4,6 +4,7 @@ import { db, schema } from '@/db';
 import { requireUserId } from '@/lib/auth';
 import { applyPredictionResult } from '@/lib/generations';
 import { getReplicate } from '@/lib/replicate';
+import { refundToken } from '@/lib/tokens';
 
 export const runtime = 'nodejs';
 
@@ -71,10 +72,8 @@ export async function DELETE(
   }
 
   const cleanups: Promise<unknown>[] = [];
-  if (
-    (row.status === 'pending' || row.status === 'running') &&
-    row.providerPredictionId
-  ) {
+  const wasInFlight = row.status === 'pending' || row.status === 'running';
+  if (wasInFlight && row.providerPredictionId) {
     cleanups.push(getReplicate().predictions.cancel(row.providerPredictionId));
   }
   if (row.outputBlobPathname) {
@@ -86,6 +85,8 @@ export async function DELETE(
       console.warn('[generations/:id DELETE] cleanup failed:', result.reason);
     }
   }
+
+  if (wasInFlight) await refundToken(userId);
 
   return Response.json({ ok: true });
 }

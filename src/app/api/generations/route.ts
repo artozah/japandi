@@ -2,6 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
 import { getModel, getReplicate, getWebhookUrl } from '@/lib/replicate';
+import { refundToken, spendToken } from '@/lib/tokens';
 
 export const runtime = 'nodejs';
 
@@ -106,6 +107,14 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Source image missing' }, { status: 400 });
   }
 
+  const spent = await spendToken(userId);
+  if (!spent) {
+    return Response.json(
+      { error: 'Insufficient tokens', code: 'no_tokens' },
+      { status: 402 },
+    );
+  }
+
   const [inserted] = await db
     .insert(schema.generations)
     .values({
@@ -157,6 +166,7 @@ export async function POST(request: Request) {
       })
       .where(eq(schema.generations.id, inserted.id))
       .returning();
+    await refundToken(userId);
     return Response.json({ generation: updated, error: message }, { status: 502 });
   }
 }

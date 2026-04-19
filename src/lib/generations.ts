@@ -2,6 +2,7 @@ import { put } from '@vercel/blob';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import type { Generation } from '@/db/schema';
+import { refundToken } from '@/lib/tokens';
 
 type PredictionSnapshot = {
   id: string;
@@ -59,7 +60,25 @@ export async function applyPredictionResult(
         : prediction.status === 'canceled'
           ? 'Generation canceled'
           : 'Generation failed';
-    return await markError(row.id, message);
+    const [transitioned] = await db
+      .update(schema.generations)
+      .set({
+        status: 'error',
+        errorMessage: message.slice(0, 500),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(schema.generations.id, row.id),
+          inArray(schema.generations.status, OPEN_STATUSES),
+        ),
+      )
+      .returning();
+    if (transitioned) {
+      await refundToken(row.userId);
+      return transitioned;
+    }
+    return await getGeneration(row.id);
   }
 
   if (row.status === 'pending' && prediction.status === 'processing') {

@@ -14,10 +14,52 @@ import {
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
+  tokens: integer('tokens').notNull().default(5),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    planKey: text('plan_key').notNull(),
+    paddleSubscriptionId: text('paddle_subscription_id').notNull(),
+    priceId: text('price_id').notNull(),
+    status: text('status').notNull(),
+    renewsAt: timestamp('renews_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index('subscriptions_user_idx').on(t.userId),
+    uniqueIndex('subscriptions_paddle_id_idx').on(t.paddleSubscriptionId),
+  ],
+);
+
+export const billingEvents = pgTable(
+  'billing_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    paddleEventId: text('paddle_event_id').notNull(),
+    eventName: text('event_name').notNull(),
+    // No FK to users: this is an immutable audit ledger that must survive account deletion.
+    userId: text('user_id'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex('billing_events_paddle_id_idx').on(t.paddleEventId)],
+);
 
 export const uploads = pgTable(
   'uploads',
@@ -118,3 +160,5 @@ export type Upload = typeof uploads.$inferSelect;
 export type Generation = typeof generations.$inferSelect;
 export type ChatSession = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type BillingEvent = typeof billingEvents.$inferSelect;

@@ -1,5 +1,12 @@
 import { safeReadError } from '@/lib/http';
 
+export class InsufficientTokensError extends Error {
+  constructor() {
+    super('Out of tokens');
+    this.name = 'InsufficientTokensError';
+  }
+}
+
 export interface GenerationRow {
   id: string;
   status: 'pending' | 'running' | 'ready' | 'error';
@@ -66,6 +73,7 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
     });
 
     if (!createRes.ok) {
+      if (createRes.status === 402) throw new InsufficientTokensError();
       const err = await safeReadError(createRes);
       throw new Error(err ?? 'Failed to start generation');
     }

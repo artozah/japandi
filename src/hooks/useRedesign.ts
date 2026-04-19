@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { runRedesign } from '@/lib/redesign';
+import { InsufficientTokensError, runRedesign } from '@/lib/redesign';
 import { buildTemplate } from '@/lib/prompt-templates';
 import type {
   GenerationHistoryEntry,
@@ -26,6 +26,7 @@ export interface StartRedesignArgs {
 export interface UseRedesignArgs {
   currentSourceEntry: HistoryEntry | null;
   setState: SetSpacesState;
+  onGenerationSettled?: () => void;
 }
 
 async function fetchEnrichedPrompt(
@@ -52,13 +53,22 @@ async function fetchEnrichedPrompt(
   }
 }
 
-export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
+export function useRedesign({
+  currentSourceEntry,
+  setState,
+  onGenerationSettled,
+}: UseRedesignArgs) {
   const abortersRef = useRef(new Map<string, AbortController>());
   const sourceEntryRef = useRef<HistoryEntry | null>(currentSourceEntry);
+  const onSettledRef = useRef(onGenerationSettled);
 
   useEffect(() => {
     sourceEntryRef.current = currentSourceEntry;
   }, [currentSourceEntry]);
+
+  useEffect(() => {
+    onSettledRef.current = onGenerationSettled;
+  }, [onGenerationSettled]);
 
   useEffect(() => {
     const aborters = abortersRef.current;
@@ -179,10 +189,20 @@ export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
           const message =
             err instanceof Error ? err.message : 'Generation failed';
           patchEntry(id, { status: 'error', errorMessage: message });
-          toast.error(`${styleLabel}: ${message}`);
+          if (err instanceof InsufficientTokensError) {
+            toast.error('Out of tokens.', {
+              action: {
+                label: 'Get more',
+                onClick: () => window.location.assign('/#pricing'),
+              },
+            });
+          } else {
+            toast.error(`${styleLabel}: ${message}`);
+          }
         })
         .finally(() => {
           abortersRef.current.delete(id);
+          onSettledRef.current?.();
         });
     },
     [setState, patchEntry],

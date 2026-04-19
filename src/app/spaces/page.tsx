@@ -46,6 +46,36 @@ export default function SpacesPage() {
     selectedEntryId: null,
   });
   const [isHydrating, setIsHydrating] = useState(true);
+  const [tokens, setTokens] = useState<number | null>(null);
+
+  const refreshTokens = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const res = await fetch('/api/me/tokens', { signal });
+      if (!res.ok) return;
+      const data = (await res.json()) as { tokens?: number };
+      if (typeof data.tokens === 'number') setTokens(data.tokens);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshTokens(controller.signal);
+    return () => controller.abort();
+  }, [refreshTokens]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') !== 'success') return;
+    toast.success('Thanks! Your tokens are on the way.');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('checkout');
+    window.history.replaceState({}, '', url.toString());
+    const timer = setTimeout(() => refreshTokens(), 2000);
+    return () => clearTimeout(timer);
+  }, [refreshTokens]);
+
 
   useEffect(() => {
     const controller = new AbortController();
@@ -352,6 +382,7 @@ export default function SpacesPage() {
   const { startRedesign, cancelRedesign } = useRedesign({
     currentSourceEntry,
     setState,
+    onGenerationSettled: refreshTokens,
   });
 
   const handleSelectStyle = useCallback(
@@ -467,7 +498,7 @@ export default function SpacesPage() {
   return (
     <MobileGate>
       <div className="flex h-full w-full flex-col">
-        <SpacesHeader />
+        <SpacesHeader tokens={tokens} />
         <div
           className="flex flex-1 flex-row overflow-hidden"
           style={{ height: 'calc(100dvh - 30px)' }}
