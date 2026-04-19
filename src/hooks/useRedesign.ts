@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { buildFallbackPrompt, runRedesign } from '@/lib/redesign';
+import { runRedesign } from '@/lib/redesign';
+import { buildTemplate } from '@/lib/prompt-templates';
 import type {
   GenerationHistoryEntry,
   HistoryEntry,
+  PromptSpec,
   SpacesState,
 } from '@/types/spaces';
 
@@ -17,12 +19,37 @@ export interface StartRedesignArgs {
   styleKey: string;
   styleLabel: string;
   styleImage?: string;
-  prompt?: string;
+  promptSpec: PromptSpec;
+  overridePrompt?: string;
 }
 
 export interface UseRedesignArgs {
   currentSourceEntry: HistoryEntry | null;
   setState: SetSpacesState;
+}
+
+async function fetchEnrichedPrompt(
+  imageUrl: string,
+  spec: PromptSpec,
+  signal: AbortSignal,
+): Promise<string | null> {
+  try {
+    const res = await fetch('/api/prompts/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl, spec }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { prompt?: unknown };
+    if (typeof data.prompt === 'string' && data.prompt.trim().length > 0) {
+      return data.prompt.trim();
+    }
+    return null;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    return null;
+  }
 }
 
 export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
@@ -62,7 +89,13 @@ export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
   );
 
   const startRedesign = useCallback(
-    ({ styleKey, styleLabel, styleImage, prompt }: StartRedesignArgs) => {
+    ({
+      styleKey,
+      styleLabel,
+      styleImage,
+      promptSpec,
+      overridePrompt,
+    }: StartRedesignArgs) => {
       const sourceEntry = sourceEntryRef.current;
       if (!sourceEntry || !sourceEntry.imageUrl) {
         toast.error('Upload an image first to start a redesign.');
@@ -75,39 +108,64 @@ export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
         return;
       }
 
-      const derivedPrompt = prompt ?? buildFallbackPrompt(styleLabel);
       const controller = new AbortController();
       const id = crypto.randomUUID();
       abortersRef.current.set(id, controller);
 
+      const initialPrompt = overridePrompt ?? buildTemplate(promptSpec);
+      const initialStatus: GenerationHistoryEntry['status'] = overridePrompt
+        ? 'generating'
+        : 'preparing';
+
       const entry: GenerationHistoryEntry = {
         id,
         kind: 'generation',
-        status: 'generating',
+        status: initialStatus,
         styleKey,
         styleLabel,
         styleImage,
-        prompt: derivedPrompt,
+        prompt: initialPrompt,
         sourceImageUrl: sourceEntry.imageUrl,
         imageUrl: null,
         percentage: 0,
         timestamp: Date.now(),
         label: styleLabel,
       };
-      setState((prev) => ({ ...prev, history: [...prev.history, entry] }));
+      setState((prev) => ({ ...prev, history: [entry, ...prev.history] }));
 
-      runRedesign({
-        id,
-        sourceUploadId:
-          sourceEntry.kind === 'upload' ? sourceEntry.id : undefined,
-        sourceGenerationId:
-          sourceEntry.kind === 'generation' ? sourceEntry.id : undefined,
-        styleKey,
-        styleLabel,
-        prompt: derivedPrompt,
-        onProgress: (percentage) => patchEntry(id, { percentage }),
-        signal: controller.signal,
-      })
+      const sourceImageUrl = sourceEntry.imageUrl;
+      const sourceUploadId =
+        sourceEntry.kind === 'upload' ? sourceEntry.id : undefined;
+      const sourceGenerationId =
+        sourceEntry.kind === 'generation' ? sourceEntry.id : undefined;
+
+      const resolvePrompt = async (): Promise<string> => {
+        if (overridePrompt) return overridePrompt;
+        const enriched = await fetchEnrichedPrompt(
+          sourceImageUrl,
+          promptSpec,
+          controller.signal,
+        );
+        return enriched ?? initialPrompt;
+      };
+
+      resolvePrompt()
+        .then((finalPrompt) => {
+          if (!overridePrompt) {
+            patchEntry(id, { prompt: finalPrompt, status: 'generating' });
+          }
+
+          return runRedesign({
+            id,
+            sourceUploadId,
+            sourceGenerationId,
+            styleKey,
+            styleLabel,
+            prompt: finalPrompt,
+            onProgress: (percentage) => patchEntry(id, { percentage }),
+            signal: controller.signal,
+          });
+        })
         .then((result) => {
           patchEntry(id, {
             status: 'ready',

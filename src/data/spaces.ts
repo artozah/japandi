@@ -47,7 +47,7 @@ export const navItems: NavItem[] = [
   },
 ];
 
-export const accordionData: Record<NavId, AccordionGroup[]> = {
+export const accordionData = {
   style: [
     {
       title: 'Modernist',
@@ -346,4 +346,8 @@ export const accordionData: Record<NavId, AccordionGroup[]> = {
       ],
     },
   ],
-};
+} as const satisfies Record<NavId, readonly AccordionGroup[]>;
+
+export type GroupTitle = {
+  [K in NavId]: (typeof accordionData)[K][number]['title'];
+}[NavId];

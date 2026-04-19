@@ -13,6 +13,7 @@ import type { UploadedImage } from '@/lib/uploads';
 import type {
   ChatMessage,
   HistoryEntry,
+  InFlightMap,
   NavId,
   SpacesState,
 } from '@/types/spaces';
@@ -369,7 +370,12 @@ export default function SpacesPage() {
       startRedesign({
         styleKey: `chat:${messageId}`,
         styleLabel: msg.proposedPrompt.label,
-        prompt: msg.proposedPrompt.prompt,
+        promptSpec: {
+          category: 'style',
+          groupTitle: 'Chat',
+          itemTitle: msg.proposedPrompt.label,
+        },
+        overridePrompt: msg.proposedPrompt.prompt,
       });
     },
     [state.messages, startRedesign],
@@ -379,14 +385,17 @@ export default function SpacesPage() {
   const hasSource = currentSourceImage !== null;
 
   const inFlightByStyleKey = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: InFlightMap = {};
     for (const entry of state.history) {
       if (
         entry.kind === 'generation' &&
-        entry.status === 'generating' &&
+        (entry.status === 'generating' || entry.status === 'preparing') &&
         entry.sourceImageUrl === currentSourceImage
       ) {
-        map[entry.styleKey] = entry.percentage;
+        map[entry.styleKey] = {
+          status: entry.status,
+          percentage: entry.percentage,
+        };
       }
     }
     return map;

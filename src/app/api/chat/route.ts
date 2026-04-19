@@ -1,3 +1,4 @@
+import { toImageSource } from '@/lib/anthropic-image';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
 import { ensureChatSession, persistMessage } from '@/lib/chat-session';
 import { isUuid } from '@/lib/validation';
@@ -44,41 +45,6 @@ const PROPOSE_PROMPT_TOOL: Anthropic.Tool = {
 function encodeSSE(event: string, data: unknown): Uint8Array {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   return new TextEncoder().encode(payload);
-}
-
-type SupportedImageMediaType =
-  | 'image/jpeg'
-  | 'image/png'
-  | 'image/gif'
-  | 'image/webp';
-
-const SUPPORTED_IMAGE_MEDIA_TYPES: readonly SupportedImageMediaType[] = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-];
-
-type ImageSource =
-  | { type: 'base64'; media_type: SupportedImageMediaType; data: string }
-  | { type: 'url'; url: string };
-
-function toImageSource(value: string): ImageSource | null {
-  if (value.startsWith('data:')) {
-    const match = /^data:([^;,]+);base64,(.+)$/.exec(value);
-    if (!match) return null;
-    const mediaType = match[1] as SupportedImageMediaType;
-    if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(mediaType)) return null;
-    return { type: 'base64', media_type: mediaType, data: match[2] };
-  }
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== 'https:') return null;
-    if (!parsed.hostname.endsWith('.blob.vercel-storage.com')) return null;
-    return { type: 'url', url: value };
-  } catch {
-    return null;
-  }
 }
 
 export async function POST(request: Request) {

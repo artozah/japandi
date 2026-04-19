@@ -17,11 +17,33 @@ export interface AccordionEntry {
 
 export interface AccordionGroup {
   title: string;
-  items?: AccordionEntry[];
-  badges?: string[];
+  items?: readonly AccordionEntry[];
+  badges?: readonly string[];
 }
 
-export type GenerationStatus = 'generating' | 'ready' | 'error';
+export type GenerationStatus = 'preparing' | 'generating' | 'ready' | 'error';
+
+export type PromptCategory = NavId;
+
+export interface PromptSpec {
+  category: PromptCategory;
+  groupTitle: string;
+  itemTitle: string;
+}
+
+export interface StyleSelection {
+  styleKey: string;
+  styleLabel: string;
+  styleImage?: string;
+  promptSpec: PromptSpec;
+}
+
+export interface InFlightState {
+  status: 'preparing' | 'generating';
+  percentage: number;
+}
+
+export type InFlightMap = Record<string, InFlightState>;
 
 export interface UploadHistoryEntry {
   id: string;

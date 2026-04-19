@@ -36,12 +36,19 @@ export function HistorySlider({
       {history.map((entry) => {
         const isActive = selectedEntryId === entry.id;
 
-        if (entry.kind === 'generation' && entry.status === 'generating') {
+        if (
+          entry.kind === 'generation' &&
+          (entry.status === 'generating' || entry.status === 'preparing')
+        ) {
           return (
             <div
               key={entry.id}
               className={cn(tileBaseCn, 'bg-muted')}
-              aria-label={`Generating ${entry.styleLabel}`}
+              aria-label={
+                entry.status === 'preparing'
+                  ? `Preparing ${entry.styleLabel}`
+                  : `Generating ${entry.styleLabel}`
+              }
               style={
                 entry.styleImage
                   ? {
@@ -52,7 +59,11 @@ export function HistorySlider({
                   : undefined
               }
             >
-              <GenerationOverlay percentage={entry.percentage} size="sm" />
+              <GenerationOverlay
+                variant={entry.status === 'preparing' ? 'preparing' : 'progress'}
+                percentage={entry.percentage}
+                size="sm"
+              />
             </div>
           );
         }

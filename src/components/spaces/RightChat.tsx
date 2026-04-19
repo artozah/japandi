@@ -23,6 +23,8 @@ interface RightChatProps {
   onClearChat: () => void;
 }
 
+const GENERATE_COOLDOWN_MS = 3000;
+
 export function RightChat({
   messages,
   isStreaming,
@@ -32,8 +34,26 @@ export function RightChat({
   onClearChat,
 }: RightChatProps) {
   const [input, setInput] = useState('');
+  const [generateCooldown, setGenerateCooldown] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+    };
+  }, []);
+
+  const handleGenerate = (messageId: string) => {
+    if (generateCooldown) return;
+    onGenerateFromChat(messageId);
+    setGenerateCooldown(true);
+    cooldownTimerRef.current = setTimeout(() => {
+      setGenerateCooldown(false);
+      cooldownTimerRef.current = null;
+    }, GENERATE_COOLDOWN_MS);
+  };
 
   const allMessages = [welcomeMessage, ...messages];
 
@@ -85,7 +105,8 @@ export function RightChat({
               key={msg.id}
               message={msg}
               hasSource={hasSource}
-              onGenerate={() => onGenerateFromChat(msg.id)}
+              disabled={generateCooldown}
+              onGenerate={() => handleGenerate(msg.id)}
             />
           ))}
         </div>
@@ -120,10 +141,16 @@ export function RightChat({
 interface MessageBubbleProps {
   message: ChatMessage;
   hasSource: boolean;
+  disabled: boolean;
   onGenerate: () => void;
 }
 
-function MessageBubble({ message, hasSource, onGenerate }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  hasSource,
+  disabled,
+  onGenerate,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isStreaming = message.status === 'streaming';
   const isError = message.status === 'error';
@@ -152,7 +179,7 @@ function MessageBubble({ message, hasSource, onGenerate }: MessageBubbleProps) {
         <button
           type="button"
           onClick={onGenerate}
-          disabled={!hasSource}
+          disabled={!hasSource || disabled}
           aria-label={
             hasSource
               ? 'Generate redesign'

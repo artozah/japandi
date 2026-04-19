@@ -99,10 +99,6 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
   }
 }
 
-export function buildFallbackPrompt(styleLabel: string): string {
-  return `Redesign this interior in ${styleLabel} style. Preserve the original layout, camera angle, and architectural features. Photorealistic, high detail, natural lighting.`;
-}
-
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {

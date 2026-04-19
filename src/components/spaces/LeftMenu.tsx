@@ -3,31 +3,33 @@
 import { GenerationOverlay } from '@/components/spaces/GenerationOverlay';
 import { accordionData, navItems } from '@/data/spaces';
 import { cn } from '@/lib/utils';
-import type { AccordionEntry, NavId } from '@/types/spaces';
+import type {
+  AccordionEntry,
+  InFlightMap,
+  NavId,
+  StyleSelection,
+} from '@/types/spaces';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
-export interface StyleSelection {
-  styleKey: string;
-  styleLabel: string;
-  styleImage?: string;
-}
+export type { StyleSelection } from '@/types/spaces';
 
 interface ImageGridProps {
-  items: AccordionEntry[];
+  items: readonly AccordionEntry[];
   navId: NavId;
-  inFlight: Record<string, number>;
+  groupTitle: string;
+  inFlight: InFlightMap;
   onSelect: (selection: StyleSelection) => void;
 }
 
-function ImageGrid({ items, navId, inFlight, onSelect }: ImageGridProps) {
+function ImageGrid({ items, navId, groupTitle, inFlight, onSelect }: ImageGridProps) {
   return (
     <div className="grid gap-1.5 pt-2">
       {items.map((item) => {
         const styleKey = `${navId}:${item.title}`;
-        const pct = inFlight[styleKey];
-        const isLoading = typeof pct === 'number';
+        const flight = inFlight[styleKey];
+        const isLoading = Boolean(flight);
         return (
           <button
             key={item.title}
@@ -39,6 +41,11 @@ function ImageGrid({ items, navId, inFlight, onSelect }: ImageGridProps) {
                 styleKey,
                 styleLabel: item.title,
                 styleImage: item.image,
+                promptSpec: {
+                  category: navId,
+                  groupTitle,
+                  itemTitle: item.title,
+                },
               })
             }
             className={cn(
@@ -61,7 +68,12 @@ function ImageGrid({ items, navId, inFlight, onSelect }: ImageGridProps) {
                 {item.title}
               </span>
             </div>
-            {isLoading && <GenerationOverlay percentage={pct} />}
+            {flight && (
+              <GenerationOverlay
+                variant={flight.status === 'preparing' ? 'preparing' : 'progress'}
+                percentage={flight.percentage}
+              />
+            )}
           </button>
         );
       })}
@@ -70,24 +82,36 @@ function ImageGrid({ items, navId, inFlight, onSelect }: ImageGridProps) {
 }
 
 interface BadgeListProps {
-  badges: string[];
+  badges: readonly string[];
   navId: NavId;
-  inFlight: Record<string, number>;
+  groupTitle: string;
+  inFlight: InFlightMap;
   onSelect: (selection: StyleSelection) => void;
 }
 
-function BadgeList({ badges, navId, inFlight, onSelect }: BadgeListProps) {
+function BadgeList({ badges, navId, groupTitle, inFlight, onSelect }: BadgeListProps) {
   return (
     <div className="flex flex-wrap gap-1.5 pt-2">
       {badges.map((badge) => {
         const styleKey = `${navId}:${badge}`;
-        const isLoading = typeof inFlight[styleKey] === 'number';
+        const flight = inFlight[styleKey];
+        const isLoading = Boolean(flight);
         return (
           <button
             key={badge}
             type="button"
             disabled={isLoading}
-            onClick={() => onSelect({ styleKey, styleLabel: badge })}
+            onClick={() =>
+              onSelect({
+                styleKey,
+                styleLabel: badge,
+                promptSpec: {
+                  category: navId,
+                  groupTitle,
+                  itemTitle: badge,
+                },
+              })
+            }
             className={cn(
               'flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
               isLoading
@@ -106,10 +130,10 @@ function BadgeList({ badges, navId, inFlight, onSelect }: BadgeListProps) {
 
 interface AccordionItemProps {
   title: string;
-  items?: AccordionEntry[];
-  badges?: string[];
+  items?: readonly AccordionEntry[];
+  badges?: readonly string[];
   navId: NavId;
-  inFlight: Record<string, number>;
+  inFlight: InFlightMap;
   onSelect: (selection: StyleSelection) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -151,6 +175,7 @@ function AccordionItem({
             <BadgeList
               badges={badges}
               navId={navId}
+              groupTitle={title}
               inFlight={inFlight}
               onSelect={onSelect}
             />
@@ -158,6 +183,7 @@ function AccordionItem({
             <ImageGrid
               items={items ?? []}
               navId={navId}
+              groupTitle={title}
               inFlight={inFlight}
               onSelect={onSelect}
             />
@@ -171,13 +197,13 @@ function AccordionItem({
 interface LeftMenuProps {
   activeNav: NavId;
   onNavChange: (id: NavId) => void;
-  inFlightByStyleKey: Record<string, number>;
+  inFlightByStyleKey: InFlightMap;
   onSelectStyle: (selection: StyleSelection) => void;
 }
 
 interface AccordionPanelProps {
   activeNav: NavId;
-  inFlightByStyleKey: Record<string, number>;
+  inFlightByStyleKey: InFlightMap;
   onSelectStyle: (selection: StyleSelection) => void;
 }
 
@@ -204,8 +230,8 @@ function AccordionPanel({
         <AccordionItem
           key={group.title}
           title={group.title}
-          items={group.items}
-          badges={group.badges}
+          items={'items' in group ? group.items : undefined}
+          badges={'badges' in group ? group.badges : undefined}
           navId={activeNav}
           inFlight={inFlightByStyleKey}
           onSelect={onSelectStyle}
