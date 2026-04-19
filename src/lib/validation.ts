@@ -5,7 +5,10 @@ export function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-export function isVercelBlobUrl(raw: string, expectedPathname?: string): boolean {
+export function isVercelBlobUrl(
+  raw: string,
+  expectedPathname?: string,
+): boolean {
   try {
     const parsed = new URL(raw);
     if (parsed.protocol !== 'https:') return false;

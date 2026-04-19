@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
 import { ensureChatSession, persistMessage } from '@/lib/chat-session';
-import { isUuid, isVercelBlobUrl } from '@/lib/validation';
+import { isUuid } from '@/lib/validation';
 import type { ChatMessage } from '@/types/spaces';
+import Anthropic from '@anthropic-ai/sdk';
 
 export const runtime = 'nodejs';
 
@@ -62,13 +62,6 @@ const SUPPORTED_IMAGE_MEDIA_TYPES: readonly SupportedImageMediaType[] = [
 type ImageSource =
   | { type: 'base64'; media_type: SupportedImageMediaType; data: string }
   | { type: 'url'; url: string };
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function isUuid(value: string): boolean {
-  return UUID_RE.test(value);
-}
 
 function toImageSource(value: string): ImageSource | null {
   if (value.startsWith('data:')) {
