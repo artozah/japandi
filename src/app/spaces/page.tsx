@@ -8,10 +8,12 @@ import { RightChat } from '@/components/spaces/RightChat';
 import { SpacesHeader } from '@/components/spaces/SpacesHeader';
 import { useRedesign } from '@/hooks/useRedesign';
 import { streamChat } from '@/lib/chat-stream';
+import { downloadBlobUrl } from '@/lib/download';
 import type { GenerationRow } from '@/lib/redesign';
 import type { UploadedImage } from '@/lib/uploads';
 import type {
   ChatMessage,
+  GenerationHistoryEntry,
   HistoryEntry,
   InFlightMap,
   NavId,
@@ -78,7 +80,7 @@ export default function SpacesPage() {
           kind: 'upload',
           imageUrl: row.blobUrl,
           timestamp: new Date(row.createdAt).getTime(),
-          label: `Upload ${idx + 1}`,
+          label: `Original ${idx + 1}`,
         }));
         const uploadUrlById = new Map(
           uploadsByIdAsc.map((row) => [row.id, row.blobUrl] as const),
@@ -171,7 +173,7 @@ export default function SpacesPage() {
         kind: 'upload',
         imageUrl: image.url,
         timestamp: new Date(image.createdAt).getTime(),
-        label: `Upload ${prev.history.filter((e) => e.kind === 'upload').length + 1}`,
+        label: `Original ${prev.history.filter((e) => e.kind === 'upload').length + 1}`,
       };
       return {
         ...prev,
@@ -347,7 +349,10 @@ export default function SpacesPage() {
     selectedEntry.status === 'ready' &&
     selectedEntry.id !== state.currentSourceEntryId;
 
-  const { startRedesign } = useRedesign({ currentSourceEntry, setState });
+  const { startRedesign, cancelRedesign } = useRedesign({
+    currentSourceEntry,
+    setState,
+  });
 
   const handleSelectStyle = useCallback(
     (selection: StyleSelection) => startRedesign(selection),
@@ -379,6 +384,64 @@ export default function SpacesPage() {
       });
     },
     [state.messages, startRedesign],
+  );
+
+  const handleDeleteGeneration = useCallback(
+    async (id: string) => {
+      let ok = false;
+      try {
+        const res = await fetch(`/api/generations/${id}`, {
+          method: 'DELETE',
+        });
+        ok = res.ok || res.status === 404;
+      } catch {
+        ok = false;
+      }
+      if (!ok) {
+        toast.error('Failed to delete generation.');
+        return;
+      }
+
+      cancelRedesign(id);
+      setState((prev) => {
+        if (!prev.history.some((e) => e.id === id)) return prev;
+        const history = prev.history.filter((e) => e.id !== id);
+        const fallbackId =
+          history.findLast((e) => e.kind === 'upload')?.id ?? null;
+        const nextSourceId =
+          prev.currentSourceEntryId === id
+            ? fallbackId
+            : prev.currentSourceEntryId;
+        const nextSelectedId =
+          prev.selectedEntryId === id ? nextSourceId : prev.selectedEntryId;
+        return {
+          ...prev,
+          history,
+          currentSourceEntryId: nextSourceId,
+          selectedEntryId: nextSelectedId,
+        };
+      });
+      toast.success('Deleted.');
+    },
+    [cancelRedesign],
+  );
+
+  const handleDownloadGeneration = useCallback(
+    async (entry: GenerationHistoryEntry) => {
+      if (!entry.imageUrl) return;
+      const safeLabel =
+        entry.styleLabel
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'generation';
+      const filenameBase = `${safeLabel}-${entry.id.slice(0, 8)}`;
+      try {
+        await downloadBlobUrl(entry.imageUrl, filenameBase);
+      } catch {
+        toast.error('Download failed.');
+      }
+    },
+    [],
   );
 
   const isChatStreaming = state.messages.some((m) => m.status === 'streaming');
@@ -430,6 +493,8 @@ export default function SpacesPage() {
               history={state.history}
               selectedEntryId={state.selectedEntryId}
               onSelect={handleHistorySelect}
+              onDeleteGeneration={handleDeleteGeneration}
+              onDownloadGeneration={handleDownloadGeneration}
             />
           </div>
           <RightChat

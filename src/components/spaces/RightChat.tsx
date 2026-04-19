@@ -1,5 +1,6 @@
 'use client';
 
+import { useAutoResetState } from '@/hooks/useAutoResetState';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/types/spaces';
 import { Plus, Send, Sparkles } from 'lucide-react';
@@ -34,25 +35,17 @@ export function RightChat({
   onClearChat,
 }: RightChatProps) {
   const [input, setInput] = useState('');
-  const [generateCooldown, setGenerateCooldown] = useState(false);
-  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    value: generateCooldown,
+    setWithTimeout: startCooldown,
+  } = useAutoResetState(false, GENERATE_COOLDOWN_MS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    return () => {
-      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
-    };
-  }, []);
 
   const handleGenerate = (messageId: string) => {
     if (generateCooldown) return;
     onGenerateFromChat(messageId);
-    setGenerateCooldown(true);
-    cooldownTimerRef.current = setTimeout(() => {
-      setGenerateCooldown(false);
-      cooldownTimerRef.current = null;
-    }, GENERATE_COOLDOWN_MS);
+    startCooldown(true);
   };
 
   const allMessages = [welcomeMessage, ...messages];

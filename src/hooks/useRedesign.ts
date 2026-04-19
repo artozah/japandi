@@ -188,5 +188,12 @@ export function useRedesign({ currentSourceEntry, setState }: UseRedesignArgs) {
     [setState, patchEntry],
   );
 
-  return { startRedesign };
+  const cancelRedesign = useCallback((id: string) => {
+    const controller = abortersRef.current.get(id);
+    if (!controller) return;
+    controller.abort();
+    abortersRef.current.delete(id);
+  }, []);
+
+  return { startRedesign, cancelRedesign };
 }
