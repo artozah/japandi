@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { db, schema, type DbExecutor } from '@/db';
+import { db, schema } from '@/db';
 import { verifyCheckoutToken } from '@/lib/billing-token';
 import {
   getPlan,
@@ -56,11 +56,10 @@ function firstPriceId(items: PaddleItem[] | undefined): string | undefined {
 }
 
 async function resolveUserIdFromSubscription(
-  executor: DbExecutor,
   subscriptionId: string | undefined | null,
 ): Promise<string | null> {
   if (!subscriptionId) return null;
-  const [row] = await executor
+  const [row] = await db
     .select({ userId: schema.subscriptions.userId })
     .from(schema.subscriptions)
     .where(eq(schema.subscriptions.paddleSubscriptionId, subscriptionId))
@@ -93,41 +92,40 @@ export async function POST(request: Request) {
   const signedUserId = verifiedToken?.userId ?? null;
   const attrData = payload.data;
 
+  // Idempotency: insert the ledger row first. neon-http has no multi-statement
+  // transactions, so on failure below we delete this row to let Paddle retry.
+  const [ledger] = await db
+    .insert(schema.billingEvents)
+    .values({
+      paddleEventId: eventId,
+      eventName: eventType,
+      userId: signedUserId,
+    })
+    .onConflictDoNothing({ target: schema.billingEvents.paddleEventId })
+    .returning({ id: schema.billingEvents.id });
+  if (!ledger) {
+    return Response.json({ ok: true });
+  }
+
   try {
-    await db.transaction(async (tx) => {
-      const [ledger] = await tx
-        .insert(schema.billingEvents)
-        .values({
-          paddleEventId: eventId,
-          eventName: eventType,
-          userId: signedUserId,
-        })
-        .onConflictDoNothing({ target: schema.billingEvents.paddleEventId })
-        .returning({ id: schema.billingEvents.id });
-      if (!ledger) return;
+    if (eventType === 'transaction.completed') {
+      const priceId = firstPriceId(attrData?.items);
+      const plan = priceId ? getPlanByPriceId(priceId) : undefined;
+      if (!plan) return Response.json({ ok: true });
 
-      if (eventType === 'transaction.completed') {
-        const priceId = firstPriceId(attrData?.items);
-        const plan = priceId ? getPlanByPriceId(priceId) : undefined;
-        if (!plan) return;
+      const userId =
+        signedUserId ??
+        (await resolveUserIdFromSubscription(attrData?.subscription_id));
+      if (!userId) return Response.json({ ok: true });
 
-        const userId =
-          signedUserId ??
-          (await resolveUserIdFromSubscription(tx, attrData?.subscription_id));
-        if (!userId) return;
-
-        if (plan.kind === 'one_time') {
-          await grantTokens(userId, plan.tokens, tx);
-        } else {
-          await setTokens(userId, plan.tokens, tx);
-        }
-        return;
+      if (plan.kind === 'one_time') {
+        await grantTokens(userId, plan.tokens);
+      } else {
+        await setTokens(userId, plan.tokens);
       }
-
-      if (SUBSCRIPTION_EVENTS.has(eventType)) {
-        const paddleSubscriptionId = attrData?.id;
-        if (!paddleSubscriptionId) return;
-
+    } else if (SUBSCRIPTION_EVENTS.has(eventType)) {
+      const paddleSubscriptionId = attrData?.id;
+      if (paddleSubscriptionId) {
         const priceId = firstPriceId(attrData?.items);
         const tokenPlanKey = verifiedToken?.planKey ?? customData?.planKey;
         const resolvedPlan: Plan | undefined =
@@ -141,10 +139,10 @@ export async function POST(request: Request) {
 
         const userId =
           signedUserId ??
-          (await resolveUserIdFromSubscription(tx, paddleSubscriptionId));
+          (await resolveUserIdFromSubscription(paddleSubscriptionId));
 
         if (resolvedPlan && resolvedPlan.kind === 'subscription' && userId) {
-          await tx
+          await db
             .insert(schema.subscriptions)
             .values({
               userId,
@@ -167,7 +165,7 @@ export async function POST(request: Request) {
               },
             });
         } else {
-          await tx
+          await db
             .update(schema.subscriptions)
             .set({ status, renewsAt, endsAt, updatedAt: sql`now()` })
             .where(
@@ -178,10 +176,20 @@ export async function POST(request: Request) {
             );
         }
       }
-    });
+    }
     return Response.json({ ok: true });
   } catch (err) {
     console.error('[paddle/webhook] handler failed:', err);
+    try {
+      await db
+        .delete(schema.billingEvents)
+        .where(eq(schema.billingEvents.id, ledger.id));
+    } catch (cleanupErr) {
+      console.error(
+        '[paddle/webhook] compensation delete failed:',
+        cleanupErr,
+      );
+    }
     return Response.json({ error: 'Handler failed' }, { status: 500 });
   }
 }
