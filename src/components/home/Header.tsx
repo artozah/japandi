@@ -4,16 +4,19 @@ import { cn } from '@/lib/utils';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
+import { useSignInGate } from '@/hooks/useSignInGate';
 
 const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'Spaces', href: '/spaces' },
+  { label: 'Spaces', href: '/spaces', gated: true },
   { label: 'Pricing', href: '/#pricing' },
 ];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const gate = useSignInGate();
+  const gateSpaces = (e: MouseEvent) => gate('/spaces', e);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -35,6 +38,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
+              onClick={link.gated ? (e) => gate(link.href, e) : undefined}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
@@ -45,6 +49,7 @@ export function Header() {
         <div className="hidden md:block">
           <Link
             href="/spaces"
+            onClick={gateSpaces}
             className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Get Started
@@ -77,7 +82,10 @@ export function Header() {
               key={link.href}
               href={link.href}
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                if (link.gated) gate(link.href, e);
+                setMobileOpen(false);
+              }}
             >
               {link.label}
             </Link>
@@ -85,7 +93,10 @@ export function Header() {
           <Link
             href="/spaces"
             className="mt-2 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            onClick={() => setMobileOpen(false)}
+            onClick={(e) => {
+              gateSpaces(e);
+              setMobileOpen(false);
+            }}
           >
             Get Started
           </Link>

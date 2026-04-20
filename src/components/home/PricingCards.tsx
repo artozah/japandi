@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Check, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useSignInGate } from '@/hooks/useSignInGate';
 
 const PRICE_IDS: Record<PlanKey, string | undefined> = {
   custom: process.env.NEXT_PUBLIC_PADDLE_PRICE_CUSTOM,
@@ -15,7 +16,8 @@ const PRICE_IDS: Record<PlanKey, string | undefined> = {
 };
 
 export function PricingCards() {
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isLoaded, user } = useUser();
+  const gate = useSignInGate();
   const [loadingKey, setLoadingKey] = useState<PlanKey | null>(null);
   const paddleRef = useRef<Paddle | null>(null);
   const [paddleReady, setPaddleReady] = useState(false);
@@ -44,12 +46,7 @@ export function PricingCards() {
 
   const handleBuy = async (planKey: PlanKey) => {
     if (!isLoaded) return;
-    if (!isSignedIn) {
-      window.location.assign(
-        `/sign-in?redirect_url=${encodeURIComponent('/#pricing')}`,
-      );
-      return;
-    }
+    if (gate('/#pricing')) return;
 
     const plan = PLANS.find((p) => p.key === planKey);
     const priceId = PRICE_IDS[planKey];

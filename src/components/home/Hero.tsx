@@ -2,8 +2,11 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useSignInGate } from '@/hooks/useSignInGate';
 
 export function Hero() {
+  const gate = useSignInGate();
+
   return (
     <section className="flex flex-col items-center justify-center px-4 py-24 text-center sm:py-32">
       <motion.div
@@ -24,6 +27,7 @@ export function Hero() {
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link
             href="/spaces"
+            onClick={(e) => gate('/spaces', e)}
             className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Start Designing
