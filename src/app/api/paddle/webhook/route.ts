@@ -4,6 +4,7 @@ import { verifyCheckoutToken } from '@/lib/billing-token';
 import {
   getPlan,
   getPlanByPriceId,
+  parseDate,
   verifyWebhookSignature,
   type Plan,
 } from '@/lib/paddle';
@@ -33,6 +34,10 @@ interface PaddleEventPayload {
     next_billed_at?: string | null;
     ends_at?: string | null;
     canceled_at?: string | null;
+    scheduled_change?: {
+      action?: string;
+      effective_at?: string | null;
+    } | null;
   };
 }
 
@@ -44,12 +49,6 @@ const SUBSCRIPTION_EVENTS = new Set([
   'subscription.paused',
   'subscription.resumed',
 ]);
-
-function parseDate(value: unknown): Date | null {
-  if (typeof value !== 'string') return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
 
 function firstPriceId(items: PaddleItem[] | undefined): string | undefined {
   return items?.[0]?.price?.id;
@@ -135,7 +134,9 @@ export async function POST(request: Request) {
         const status = attrData?.status ?? 'unknown';
         const renewsAt = parseDate(attrData?.next_billed_at);
         const endsAt =
-          parseDate(attrData?.ends_at) ?? parseDate(attrData?.canceled_at);
+          parseDate(attrData?.ends_at) ??
+          parseDate(attrData?.canceled_at) ??
+          parseDate(attrData?.scheduled_change?.effective_at);
 
         const userId =
           signedUserId ??

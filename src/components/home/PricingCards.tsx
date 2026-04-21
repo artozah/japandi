@@ -2,7 +2,12 @@
 
 import { useUser } from '@clerk/nextjs';
 import { initializePaddle, type Paddle } from '@paddle/paddle-js';
-import { PLANS, type PlanKey } from '@/lib/paddle';
+import type { Subscription } from '@/db/schema';
+import {
+  isActiveSubscriptionStatus,
+  PLANS,
+  type PlanKey,
+} from '@/lib/paddle';
 import { cn } from '@/lib/utils';
 import { Check, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -16,11 +21,31 @@ const PRICE_IDS: Record<PlanKey, string | undefined> = {
 };
 
 export function PricingCards() {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const gate = useSignInGate();
   const [loadingKey, setLoadingKey] = useState<PlanKey | null>(null);
   const paddleRef = useRef<Paddle | null>(null);
   const [paddleReady, setPaddleReady] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setSubscription(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch('/api/me/subscription', { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && 'subscription' in data) {
+          setSubscription((data.subscription as Subscription | null) ?? null);
+        }
+      })
+      .catch(() => {
+        /* silent */
+      });
+    return () => controller.abort();
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
@@ -103,6 +128,10 @@ export function PricingCards() {
     <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {PLANS.map((plan) => {
         const isLoading = loadingKey === plan.key;
+        const isCurrent =
+          !!subscription &&
+          subscription.planKey === plan.key &&
+          isActiveSubscriptionStatus(subscription.status);
         return (
           <div
             key={plan.key}
@@ -154,7 +183,7 @@ export function PricingCards() {
             <button
               type="button"
               onClick={() => handleBuy(plan.key)}
-              disabled={isLoading || !paddleReady}
+              disabled={isCurrent || isLoading || !paddleReady}
               className={cn(
                 'mt-8 inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                 plan.highlight
@@ -162,11 +191,13 @@ export function PricingCards() {
                   : 'border border-border text-foreground hover:bg-muted',
               )}
             >
-              {isLoading
-                ? 'Opening…'
-                : plan.kind === 'one_time'
-                  ? 'Buy'
-                  : 'Subscribe'}
+              {isCurrent
+                ? 'Current plan'
+                : isLoading
+                  ? 'Opening…'
+                  : plan.kind === 'one_time'
+                    ? 'Buy'
+                    : 'Subscribe'}
             </button>
           </div>
         );

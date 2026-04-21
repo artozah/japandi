@@ -11,7 +11,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { useAutoResetState } from '@/hooks/useAutoResetState';
 import { cn } from '@/lib/utils';
 import type { Subscription } from '@/db/schema';
-import { getPlan } from '@/lib/paddle';
+import { getPlan, isActiveSubscriptionStatus } from '@/lib/paddle';
 import { Check, Monitor, Moon, Sun, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ interface SettingsModalProps {
   onClose: () => void;
   subscription: Subscription | null;
   onOpenViewPlans: () => void;
+  onSubscriptionChanged?: () => void;
 }
 
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> =
@@ -41,6 +42,7 @@ export function SettingsModal({
   onClose,
   subscription,
   onOpenViewPlans,
+  onSubscriptionChanged,
 }: SettingsModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Settings" maxWidth="max-w-xl">
@@ -59,6 +61,7 @@ export function SettingsModal({
                 subscription={subscription}
                 onOpenViewPlans={onOpenViewPlans}
                 onAfterDelete={onClose}
+                onSubscriptionChanged={onSubscriptionChanged}
               />
             ),
           },
@@ -156,14 +159,55 @@ function formatDate(value: string | Date | null | undefined): string {
   });
 }
 
+function SubscriptionConfirmButtons({
+  busy,
+  confirmLabel,
+  busyLabel,
+  dismissLabel,
+  onConfirm,
+  onDismiss,
+}: {
+  busy: boolean;
+  confirmLabel: string;
+  busyLabel: string;
+  dismissLabel: string;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onConfirm}
+        className="inline-flex h-9 items-center gap-1 rounded-md bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-60"
+      >
+        <Check className="h-3.5 w-3.5" />
+        {busy ? busyLabel : confirmLabel}
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onDismiss}
+        className="inline-flex h-9 items-center gap-1 rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-muted"
+      >
+        <X className="h-3.5 w-3.5" />
+        {dismissLabel}
+      </button>
+    </div>
+  );
+}
+
 function AccountTab({
   subscription,
   onOpenViewPlans,
   onAfterDelete,
+  onSubscriptionChanged,
 }: {
   subscription: Subscription | null;
   onOpenViewPlans: () => void;
   onAfterDelete: () => void;
+  onSubscriptionChanged?: () => void;
 }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -172,7 +216,13 @@ function AccountTab({
     setWithTimeout: startConfirm,
     reset: cancelConfirm,
   } = useAutoResetState(false, 4000);
+  const {
+    value: subConfirm,
+    setWithTimeout: startSubConfirm,
+    reset: resetSubConfirm,
+  } = useAutoResetState<'cancel' | 'renew' | null>(null, 4000);
   const [deleting, setDeleting] = useState(false);
+  const [subBusy, setSubBusy] = useState<'cancel' | 'renew' | null>(null);
 
   const email = user?.primaryEmailAddress?.emailAddress ?? '—';
   const fullName =
@@ -182,8 +232,11 @@ function AccountTab({
   const memberSince = formatDate(user?.createdAt ?? null);
 
   const plan = subscription ? getPlan(subscription.planKey) : undefined;
-  const isSubscriptionActive =
-    subscription?.status === 'active' || subscription?.status === 'trialing';
+  const isSubscriptionActive = isActiveSubscriptionStatus(subscription?.status);
+  const scheduledToEnd =
+    !!subscription && isSubscriptionActive && !!subscription.endsAt;
+  const canCancelSubscription =
+    !!subscription && isSubscriptionActive && !subscription.endsAt;
 
   const handleDelete = useCallback(async () => {
     cancelConfirm();
@@ -203,6 +256,46 @@ function AccountTab({
       setDeleting(false);
     }
   }, [cancelConfirm, onAfterDelete, signOut]);
+
+  const handleCancelSubscription = useCallback(async () => {
+    resetSubConfirm();
+    setSubBusy('cancel');
+    try {
+      const res = await fetch('/api/me/subscription/cancel', {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        toast.error('Could not cancel your subscription.');
+        return;
+      }
+      toast.success('Subscription will end at the end of the billing period.');
+      onSubscriptionChanged?.();
+    } catch {
+      toast.error('Could not cancel your subscription.');
+    } finally {
+      setSubBusy(null);
+    }
+  }, [onSubscriptionChanged, resetSubConfirm]);
+
+  const handleRenewSubscription = useCallback(async () => {
+    resetSubConfirm();
+    setSubBusy('renew');
+    try {
+      const res = await fetch('/api/me/subscription/renew', {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        toast.error('Could not renew your subscription.');
+        return;
+      }
+      toast.success('Subscription renewed.');
+      onSubscriptionChanged?.();
+    } catch {
+      toast.error('Could not renew your subscription.');
+    } finally {
+      setSubBusy(null);
+    }
+  }, [onSubscriptionChanged, resetSubConfirm]);
 
   return (
     <div className="flex flex-col gap-4 text-sm">
@@ -225,24 +318,62 @@ function AccountTab({
                 ? `${plan.name} (${isSubscriptionActive ? subscription?.status : 'inactive'})`
                 : 'No active subscription'}
             </div>
-            {subscription?.renewsAt && (
-              <div className="mt-1 text-xs text-muted-foreground">
-                Renews {formatDate(subscription.renewsAt)}
-              </div>
-            )}
-            {subscription?.endsAt && !subscription.renewsAt && (
+            {subscription?.endsAt ? (
               <div className="mt-1 text-xs text-muted-foreground">
                 Active until {formatDate(subscription.endsAt)}
               </div>
-            )}
+            ) : subscription?.renewsAt ? (
+              <div className="mt-1 text-xs text-muted-foreground">
+                Renews {formatDate(subscription.renewsAt)}
+              </div>
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onOpenViewPlans}
-            className="inline-flex h-9 items-center rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-muted"
-          >
-            {plan ? 'Manage subscription' : 'View plans'}
-          </button>
+          {subConfirm === 'cancel' ? (
+            <SubscriptionConfirmButtons
+              busy={subBusy === 'cancel'}
+              confirmLabel="Confirm cancel"
+              busyLabel="Canceling…"
+              dismissLabel="Keep plan"
+              onConfirm={handleCancelSubscription}
+              onDismiss={resetSubConfirm}
+            />
+          ) : subConfirm === 'renew' ? (
+            <SubscriptionConfirmButtons
+              busy={subBusy === 'renew'}
+              confirmLabel="Confirm renew"
+              busyLabel="Renewing…"
+              dismissLabel="Keep canceled"
+              onConfirm={handleRenewSubscription}
+              onDismiss={resetSubConfirm}
+            />
+          ) : scheduledToEnd ? (
+            <button
+              type="button"
+              onClick={() => startSubConfirm('renew')}
+              className="inline-flex h-9 items-center rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              Renew subscription
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onOpenViewPlans}
+                className="inline-flex h-9 items-center rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                {plan ? 'Manage subscription' : 'View plans'}
+              </button>
+              {canCancelSubscription && (
+                <button
+                  type="button"
+                  onClick={() => startSubConfirm('cancel')}
+                  className="inline-flex h-9 items-center rounded-md border border-red-500/60 px-3 text-xs font-medium text-red-600 hover:bg-red-500/10"
+                >
+                  Cancel subscription
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

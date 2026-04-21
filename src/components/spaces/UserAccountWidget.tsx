@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ModalKey = 'settings' | 'help' | 'plans' | null;
 
@@ -58,22 +58,26 @@ export function UserAccountWidget() {
     };
   }, [open]);
 
+  const loadSubscription = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const r = await fetch('/api/me/subscription', { signal });
+      if (!r.ok) return;
+      const data = (await r.json()) as { subscription?: Subscription | null };
+      if ('subscription' in data) {
+        setSubscription(data.subscription ?? null);
+      }
+      setSubscriptionLoaded(true);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => {
     if (!open || subscriptionLoaded) return;
     const controller = new AbortController();
-    fetch('/api/me/subscription', { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data && 'subscription' in data) {
-          setSubscription(data.subscription as Subscription | null);
-        }
-        setSubscriptionLoaded(true);
-      })
-      .catch(() => {
-        /* silent */
-      });
+    loadSubscription(controller.signal);
     return () => controller.abort();
-  }, [open, subscriptionLoaded]);
+  }, [open, subscriptionLoaded, loadSubscription]);
 
   if (!isLoaded || !isSignedIn || !user) return null;
 
@@ -184,6 +188,7 @@ export function UserAccountWidget() {
         onClose={() => setModal(null)}
         subscription={subscription}
         onOpenViewPlans={() => setModal('plans')}
+        onSubscriptionChanged={() => loadSubscription()}
       />
       <HelpModal open={modal === 'help'} onClose={() => setModal(null)} />
       <ViewPlansModal

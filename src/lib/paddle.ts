@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
-import { Environment, Paddle } from '@paddle/paddle-node-sdk';
+import {
+  Environment,
+  Paddle,
+  type Subscription as PaddleSubscription,
+} from '@paddle/paddle-node-sdk';
 
 export type PlanKey = 'custom' | 'standard' | 'professional';
 
@@ -30,7 +34,7 @@ export const PLANS: readonly Plan[] = [
   {
     key: 'standard',
     name: 'Standard',
-    priceLabel: '$19/mo',
+    priceLabel: '$19/month',
     tokens: 100,
     kind: 'subscription',
     tagline: 'For regular monthly use.',
@@ -39,7 +43,7 @@ export const PLANS: readonly Plan[] = [
   {
     key: 'professional',
     name: 'Professional',
-    priceLabel: '$49/mo',
+    priceLabel: '$49/month',
     tokens: 500,
     kind: 'subscription',
     tagline: 'For heavy use and teams.',
@@ -104,24 +108,74 @@ export function getPaddleServer(): Paddle | null {
   return serverClient;
 }
 
+export const ACTIVE_SUBSCRIPTION_STATUSES = [
+  'active',
+  'trialing',
+  'past_due',
+] as const;
+
+export function isActiveSubscriptionStatus(
+  status: string | null | undefined,
+): boolean {
+  return (ACTIVE_SUBSCRIPTION_STATUSES as readonly string[]).includes(
+    status ?? '',
+  );
+}
+
+export function parseDate(value: unknown): Date | null {
+  if (typeof value !== 'string') return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function cancelPaddleSubscription(
   subscriptionId: string,
-): Promise<boolean> {
+  effectiveFrom: 'immediately' | 'next_billing_period' = 'immediately',
+): Promise<PaddleSubscription | null> {
   const client = getPaddleServer();
-  if (!client) return false;
+  if (!client) return null;
   try {
-    await client.subscriptions.cancel(subscriptionId, {
-      effectiveFrom: 'immediately',
-    });
-    return true;
+    return await client.subscriptions.cancel(subscriptionId, { effectiveFrom });
   } catch (err) {
     console.warn(
       '[paddle] subscriptions.cancel failed for',
       subscriptionId,
       err,
     );
-    return false;
+    return null;
   }
+}
+
+export async function clearPaddleScheduledChange(
+  subscriptionId: string,
+): Promise<PaddleSubscription | null> {
+  const client = getPaddleServer();
+  if (!client) return null;
+  try {
+    return await client.subscriptions.update(subscriptionId, {
+      scheduledChange: null,
+    });
+  } catch (err) {
+    console.warn(
+      '[paddle] subscriptions.update(clear scheduledChange) failed for',
+      subscriptionId,
+      err,
+    );
+    return null;
+  }
+}
+
+export function subscriptionDbPatchFromPaddle(sub: PaddleSubscription): {
+  status: string;
+  renewsAt: Date | null;
+  endsAt: Date | null;
+} {
+  return {
+    status: sub.status ?? 'unknown',
+    renewsAt: parseDate(sub.nextBilledAt),
+    endsAt:
+      parseDate(sub.canceledAt) ?? parseDate(sub.scheduledChange?.effectiveAt),
+  };
 }
 
 export function verifyWebhookSignature(

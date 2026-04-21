@@ -2,12 +2,14 @@ import { del } from '@vercel/blob';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requireUserId } from '@/lib/auth';
-import { cancelPaddleSubscription } from '@/lib/paddle';
+import {
+  ACTIVE_SUBSCRIPTION_STATUSES,
+  cancelPaddleSubscription,
+} from '@/lib/paddle';
 
 export const runtime = 'nodejs';
 
 const BLOB_DELETE_CONCURRENCY = 10;
-const ACTIVE_SUBSCRIPTION_STATUSES = ['active', 'trialing', 'past_due'];
 
 async function bestEffortDel(pathname: string) {
   try {
