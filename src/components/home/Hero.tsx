@@ -4,42 +4,102 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSignInGate } from '@/hooks/useSignInGate';
 
+const THUMBS = [
+  { label: 'japandi' },
+  { label: 'scandi' },
+  { label: 'modern' },
+  { label: 'boho' },
+];
+
 export function Hero() {
   const gate = useSignInGate();
 
   return (
-    <section className="flex flex-col items-center justify-center px-4 py-24 text-center sm:py-32">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="mx-auto max-w-3xl"
-      >
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          Design Your Space with
-          <br />
-          <span className="text-muted-foreground">AI-Powered Simplicity</span>
-        </h1>
-        <p className="mt-6 text-lg leading-8 text-muted-foreground sm:text-xl">
-          Upload a photo of any room and let our AI redesign it to match your
-          preferred style — new look, new mood, and instant results.
-        </p>
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href="/spaces"
-            onClick={(e) => gate('/spaces', e)}
-            className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Start Designing
-          </Link>
-          <Link
-            href="#how-it-works"
-            className="inline-flex h-11 items-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            See How It Works
-          </Link>
-        </div>
-      </motion.div>
+    <section className="border-b border-border px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[1.2fr_1fr]">
+        <motion.div
+          className="flex flex-col"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent-warm">
+            One photo · many styles
+          </p>
+          <h1 className="mt-5 text-5xl font-bold leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            Design Your Space with
+            <br />
+            <span className="italic font-normal text-accent-warm">
+              AI-Powered Simplicity
+            </span>
+          </h1>
+          <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Upload a photo of any room and let our AI redesign it to match your
+            preferred style — new look, new mood, and instant results.
+          </p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row lg:mt-auto lg:pt-9">
+            <Link
+              href="/spaces"
+              onClick={(e) => gate('/spaces', e)}
+              className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Start Designing
+            </Link>
+            <Link
+              href="#how-it-works"
+              className="inline-flex h-11 items-center justify-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              View Gallery
+            </Link>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+          className="grid grid-cols-2 gap-3"
+        >
+          <PlaceholderTile
+            label="your room · before"
+            className="col-span-2 h-[220px] w-full"
+            tone="neutral"
+          />
+          {THUMBS.map((t) => (
+            <PlaceholderTile
+              key={t.label}
+              label={t.label}
+              className="h-[140px] w-full"
+              tone={t.label === 'japandi' ? 'warm' : 'neutral'}
+            />
+          ))}
+        </motion.div>
+      </div>
     </section>
+  );
+}
+
+function PlaceholderTile({
+  label,
+  className,
+  tone,
+}: {
+  label: string;
+  className?: string;
+  tone: 'warm' | 'neutral';
+}) {
+  const gradient =
+    tone === 'warm'
+      ? 'repeating-linear-gradient(135deg, color-mix(in oklab, var(--accent-warm) 35%, var(--muted)) 0 12px, var(--muted) 12px 24px)'
+      : 'repeating-linear-gradient(135deg, var(--muted) 0 12px, var(--border) 12px 24px)';
+  return (
+    <div
+      className={`relative overflow-hidden rounded-lg border border-border ${className ?? ''}`}
+      style={{ backgroundImage: gradient }}
+    >
+      <span className="absolute bottom-2 left-2 rounded bg-background/75 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+        {label}
+      </span>
+    </div>
   );
 }

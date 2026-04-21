@@ -6,10 +6,10 @@ import type { Subscription } from '@/db/schema';
 import {
   isActiveSubscriptionStatus,
   PLANS,
+  type Plan,
   type PlanKey,
 } from '@/lib/paddle';
-import { cn } from '@/lib/utils';
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useResolvedDarkMode } from '@/hooks/useResolvedDarkMode';
@@ -148,7 +148,7 @@ export function PricingCards() {
   }, [isLoaded, isSignedIn, paddleReady, handleBuy]);
 
   return (
-    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-3">
       {PLANS.map((plan) => {
         const isLoading = loadingKey === plan.key;
         const isCurrent =
@@ -156,75 +156,120 @@ export function PricingCards() {
           subscription.planKey === plan.key &&
           isActiveSubscriptionStatus(subscription.status);
         return (
-          <div
+          <PricingCard
             key={plan.key}
-            className={cn(
-              'relative flex flex-col rounded-xl border bg-card p-8',
-              plan.highlight
-                ? 'border-foreground shadow-lg'
-                : 'border-border',
-            )}
-          >
-            {plan.highlight && (
-              <span className="absolute -top-3 right-6 inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-0.5 text-[11px] font-medium text-background">
-                <Sparkles className="h-3 w-3" />
-                Most Popular
-              </span>
-            )}
-
-            <h3 className="text-lg font-semibold text-foreground">
-              {plan.name}
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-
-            <div className="mt-6">
-              <span className="text-4xl font-bold text-foreground">
-                {plan.priceLabel}
-              </span>
-            </div>
-
-            <ul className="mt-6 flex flex-col gap-2 text-sm">
-              <li className="flex items-center gap-2 text-foreground">
-                <Check className="h-4 w-4 text-foreground" />
-                <span className="font-medium">{plan.tokens} tokens</span>
-                {plan.kind === 'subscription' && (
-                  <span className="text-muted-foreground">/ month</span>
-                )}
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="h-4 w-4 text-foreground" />
-                {plan.kind === 'one_time'
-                  ? 'Pay once, use anytime'
-                  : 'Resets monthly, cancel anytime'}
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="h-4 w-4 text-foreground" />
-                Refund on failed generations
-              </li>
-            </ul>
-
-            <button
-              type="button"
-              onClick={() => handleBuy(plan.key)}
-              disabled={isCurrent || isLoading || !paddleReady}
-              className={cn(
-                'mt-8 inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-                plan.highlight
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'border border-border text-foreground hover:bg-muted',
-              )}
-            >
-              {isCurrent
-                ? 'Current plan'
-                : isLoading
-                  ? 'Opening…'
-                  : plan.kind === 'one_time'
-                    ? 'Buy'
-                    : 'Subscribe'}
-            </button>
-          </div>
+            plan={plan}
+            isLoading={isLoading}
+            isCurrent={isCurrent}
+            disabled={isCurrent || isLoading || !paddleReady}
+            onBuy={() => handleBuy(plan.key)}
+          />
         );
       })}
     </div>
   );
 }
+
+function PricingCard({
+  plan,
+  isLoading,
+  isCurrent,
+  disabled,
+  onBuy,
+}: {
+  plan: Plan;
+  isLoading: boolean;
+  isCurrent: boolean;
+  disabled: boolean;
+  onBuy: () => void;
+}) {
+  const isHL = !!plan.highlight;
+  const [amount, period] = plan.priceLabel.includes('/')
+    ? plan.priceLabel.split('/')
+    : [plan.priceLabel, null];
+  const periodLabel = period ? `/${period}` : 'one-time';
+
+  const features = [
+    plan.kind === 'one_time'
+      ? 'Pay once, use anytime'
+      : 'Resets monthly, cancel anytime',
+    'All 24 styles · HD downloads',
+    'Commercial use included',
+    'Refund on failed generations',
+  ];
+
+  const buttonLabel = isCurrent
+    ? 'Current plan'
+    : isLoading
+      ? 'Opening…'
+      : plan.kind === 'one_time'
+        ? `Buy ${plan.name}`
+        : `Subscribe to ${plan.name}`;
+
+  return (
+    <div
+      className={`relative flex flex-col rounded-xl border p-8 ${
+        isHL ? 'border-accent-warm bg-card' : 'border-border bg-card'
+      }`}
+    >
+      {isHL && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-accent-warm bg-background px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-accent-warm">
+          <span className="mr-1.5 inline-block h-1 w-1 rounded-full bg-accent-warm align-middle" />
+          Most popular
+        </span>
+      )}
+
+      <h3 className="text-base font-semibold tracking-tight text-foreground">
+        {plan.name}
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+
+      <div className="mt-6 flex items-baseline gap-2">
+        <span className="text-5xl font-bold tracking-tight text-foreground">
+          {amount}
+        </span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {periodLabel}
+        </span>
+      </div>
+      <p className="mt-1 font-mono text-xs text-accent-warm">
+        {plan.tokens} tokens
+      </p>
+
+      <div className="my-6 h-px bg-border" />
+
+      <ul className="flex flex-col gap-3">
+        {features.map((f) => (
+          <li
+            key={f}
+            className="flex items-start gap-2.5 text-sm text-foreground"
+          >
+            <Check
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-warm"
+              strokeWidth={2}
+            />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={onBuy}
+        disabled={disabled}
+        className={`mt-8 inline-flex h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+          isHL
+            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+            : 'border border-border bg-background text-foreground hover:bg-muted'
+        }`}
+      >
+        {buttonLabel}
+      </button>
+
+      <p className="mt-3 text-center font-mono text-[10px] text-muted-foreground">
+        Instant delivery · Tokens never expire
+      </p>
+    </div>
+  );
+}
+

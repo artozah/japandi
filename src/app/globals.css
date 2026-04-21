@@ -7,6 +7,7 @@
   --muted-foreground: #78716c;
   --accent: #292524;
   --accent-foreground: #fafaf9;
+  --accent-warm: #8a7a62;
   --border: #e7e5e4;
   --ring: #a8a29e;
   --primary: #292524;
@@ -25,6 +26,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-warm: var(--accent-warm);
   --color-border: var(--border);
   --color-ring: var(--ring);
   --color-primary: var(--primary);
@@ -48,6 +50,7 @@ html.dark {
   --muted-foreground: #7a8294;
   --accent: #d8dee9;
   --accent-foreground: #0d1220;
+  --accent-warm: #c9a876;
   --border: #1f2638;
   --ring: #3a4358;
   --primary: #d8dee9;
@@ -66,6 +69,7 @@ html.dark {
     --muted-foreground: #7a8294;
     --accent: #d8dee9;
     --accent-foreground: #0d1220;
+    --accent-warm: #c9a876;
     --border: #1f2638;
     --ring: #3a4358;
     --primary: #d8dee9;

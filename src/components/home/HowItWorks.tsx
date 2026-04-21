@@ -1,6 +1,15 @@
-import { Download, Sparkles, Upload } from 'lucide-react';
+import { Upload, Sparkles, Download, type LucideIcon } from 'lucide-react';
+import { Section, SectionHeader } from '@/components/home/Section';
 
-const steps = [
+type Step = {
+  number: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  meta?: string;
+};
+
+const STEPS: Step[] = [
   {
     number: '01',
     icon: Upload,
@@ -13,55 +22,80 @@ const steps = [
     icon: Sparkles,
     title: 'AI Transforms It',
     description:
-      'Our AI analyzes your space and generates stunning redesigns in seconds.',
+      'Our AI analyses your space and generates stunning redesigns in seconds, preserving your room’s architecture.',
+    meta: '~8 seconds per render',
   },
   {
     number: '03',
     icon: Download,
     title: 'Download & Share',
     description:
-      'Save your favorite designs, compare variations, and share them with friends or your designer.',
+      'Save your favourite designs, compare variations, and share them with friends or your designer.',
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="border-t border-border px-4 py-24 sm:py-32"
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            How It Works
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Three simple steps to your dream interior.
-          </p>
-        </div>
+    <Section id="how-it-works">
+      <SectionHeader
+        eyebrow="Process"
+        title="How It Works"
+        subtitle="Three simple steps to your dream interior."
+      />
 
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {steps.map((step) => (
-            <div
-              key={step.number}
-              className="relative rounded-xl border border-border bg-card p-8"
+      <ol className="relative mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-[3.75rem] hidden h-px bg-gradient-to-r from-transparent via-border to-transparent lg:block"
+        />
+
+        {STEPS.map(({ number, icon: Icon, title, description, meta }, i) => {
+          const isFeatured = i === 1;
+          return (
+            <li
+              key={number}
+              className={`relative rounded-xl border p-8 ${
+                isFeatured
+                  ? 'border-accent-warm/40 bg-card shadow-[0_0_0_1px_rgba(201,168,118,0.08)_inset]'
+                  : 'border-border bg-card'
+              }`}
             >
-              <span className="text-xs font-semibold text-muted-foreground">
-                {step.number}
-              </span>
-              <div className="mt-4 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                <step.icon className="h-5 w-5 text-foreground" />
+              <div className="flex items-start justify-between">
+                <span
+                  className={`font-mono text-xs font-medium tracking-wider ${
+                    isFeatured ? 'text-accent-warm' : 'text-muted-foreground'
+                  }`}
+                >
+                  {number}
+                </span>
+                {meta && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
+                    <span className="h-1 w-1 rounded-full bg-accent-warm" />
+                    {meta}
+                  </span>
+                )}
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-foreground">
-                {step.title}
+
+              <div
+                className={`mt-5 flex h-11 w-11 items-center justify-center rounded-lg border ${
+                  isFeatured
+                    ? 'border-accent-warm/30 bg-accent-warm/10 text-accent-warm'
+                    : 'border-border bg-background text-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
+                {title}
               </h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {step.description}
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {description}
               </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+            </li>
+          );
+        })}
+      </ol>
+    </Section>
   );
 }

@@ -1,25 +1,25 @@
 import { PricingCards } from '@/components/home/PricingCards';
+import { Section, SectionHeader } from '@/components/home/Section';
 
 export function Pricing() {
   return (
-    <section
-      id="pricing"
-      className="border-t border-border px-4 py-24 sm:py-32"
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Pricing
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Buy tokens to generate redesigns. 1 token = 1 image.
-          </p>
-        </div>
+    <Section id="pricing">
+      <SectionHeader
+        eyebrow="Pricing"
+        title="Pay for what you render."
+        subtitle="Buy tokens to generate redesigns. 1 token = 1 image. No subscription required."
+      />
 
-        <div className="mt-16">
-          <PricingCards />
-        </div>
+      <div className="mt-16">
+        <PricingCards />
       </div>
-    </section>
+
+      <div className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-xs text-muted-foreground">
+        <span>✓ 14-day refund</span>
+        <span>✓ Tokens never expire</span>
+        <span>✓ Commercial use included</span>
+        <span>✓ Cancel anytime</span>
+      </div>
+    </Section>
   );
 }
