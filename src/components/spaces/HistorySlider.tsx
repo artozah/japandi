@@ -94,12 +94,13 @@ export function HistorySlider({
         }
 
         if (entry.kind === 'generation' && entry.status === 'error') {
+          const isConfirming = confirmingId === entry.id;
           return (
             <div
               key={entry.id}
               className={cn(
                 tileBaseCn,
-                'flex flex-col items-center justify-center gap-1 border border-red-500/60 bg-red-500/10 px-2 text-center',
+                'group/tile flex flex-col items-center justify-center gap-1 border border-red-500/60 bg-red-500/10 px-2 text-center',
               )}
               title={entry.errorMessage}
               aria-label={`Failed: ${entry.styleLabel}`}
@@ -109,6 +110,13 @@ export function HistorySlider({
                 {entry.styleLabel}
               </span>
               <span className="text-[9px] text-red-500">Failed</span>
+              <TileActions
+                label={entry.styleLabel ?? ''}
+                confirming={isConfirming}
+                onStartConfirm={() => startConfirm(entry.id)}
+                onConfirmDelete={() => confirmDelete(entry.id)}
+                onCancelConfirm={cancelConfirm}
+              />
             </div>
           );
         }

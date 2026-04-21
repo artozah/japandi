@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 import { initializePaddle, type Paddle } from '@paddle/paddle-js';
 import type { Subscription } from '@/db/schema';
 import {
@@ -10,9 +10,9 @@ import {
 } from '@/lib/paddle';
 import { cn } from '@/lib/utils';
 import { Check, Sparkles } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useSignInGate } from '@/hooks/useSignInGate';
+import { useResolvedDarkMode } from '@/hooks/useResolvedDarkMode';
 
 const PRICE_IDS: Record<PlanKey, string | undefined> = {
   custom: process.env.NEXT_PUBLIC_PADDLE_PRICE_CUSTOM,
@@ -20,9 +20,14 @@ const PRICE_IDS: Record<PlanKey, string | undefined> = {
   professional: process.env.NEXT_PUBLIC_PADDLE_PRICE_PROFESSIONAL,
 };
 
+const PENDING_BUY_KEY = 'pending-buy-plan';
+
 export function PricingCards() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const gate = useSignInGate();
+  const { openSignIn } = useClerk();
+  const isDark = useResolvedDarkMode();
+  const isDarkRef = useRef(isDark);
+  isDarkRef.current = isDark;
   const [loadingKey, setLoadingKey] = useState<PlanKey | null>(null);
   const paddleRef = useRef<Paddle | null>(null);
   const [paddleReady, setPaddleReady] = useState(false);
@@ -69,60 +74,78 @@ export function PricingCards() {
     };
   }, []);
 
-  const handleBuy = async (planKey: PlanKey) => {
-    if (!isLoaded) return;
-    if (gate('/#pricing')) return;
-
-    const plan = PLANS.find((p) => p.key === planKey);
-    const priceId = PRICE_IDS[planKey];
-    if (!plan || !priceId) {
-      toast.error('Pricing not configured yet.');
-      return;
-    }
-    const paddle = paddleRef.current;
-    if (!paddle) {
-      toast.error('Checkout is still loading. Try again in a second.');
-      return;
-    }
-
-    const email = user?.primaryEmailAddress?.emailAddress;
-    const origin = window.location.origin;
-
-    setLoadingKey(planKey);
-    try {
-      const tokenRes = await fetch('/api/billing/checkout-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planKey }),
-      });
-      if (!tokenRes.ok) {
-        toast.error('Could not start checkout.');
-        return;
-      }
-      const tokenData = (await tokenRes.json()) as { token?: string };
-      if (!tokenData.token) {
-        toast.error('Checkout token missing.');
+  const handleBuy = useCallback(
+    async (planKey: PlanKey) => {
+      if (!isLoaded) return;
+      if (!isSignedIn) {
+        sessionStorage.setItem(PENDING_BUY_KEY, planKey);
+        openSignIn({ fallbackRedirectUrl: window.location.href });
         return;
       }
 
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        ...(email ? { customer: { email } } : {}),
-        customData: {
-          token: tokenData.token,
-          planKey,
-        },
-        settings: {
-          successUrl: `${origin}/spaces?checkout=success`,
-        },
-      });
-    } catch (err) {
-      console.error('[pricing] checkout open failed:', err);
-      toast.error('Could not open checkout.');
-    } finally {
-      setLoadingKey(null);
-    }
-  };
+      const plan = PLANS.find((p) => p.key === planKey);
+      const priceId = PRICE_IDS[planKey];
+      if (!plan || !priceId) {
+        toast.error('Pricing not configured yet.');
+        return;
+      }
+      const paddle = paddleRef.current;
+      if (!paddle) {
+        toast.error('Checkout is still loading. Try again in a second.');
+        return;
+      }
+
+      const email = user?.primaryEmailAddress?.emailAddress;
+      const origin = window.location.origin;
+
+      setLoadingKey(planKey);
+      try {
+        const tokenRes = await fetch('/api/billing/checkout-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planKey }),
+        });
+        if (!tokenRes.ok) {
+          toast.error('Could not start checkout.');
+          return;
+        }
+        const tokenData = (await tokenRes.json()) as { token?: string };
+        if (!tokenData.token) {
+          toast.error('Checkout token missing.');
+          return;
+        }
+
+        paddle.Checkout.open({
+          items: [{ priceId, quantity: 1 }],
+          ...(email ? { customer: { email } } : {}),
+          customData: {
+            token: tokenData.token,
+            planKey,
+          },
+          settings: {
+            successUrl: `${origin}/spaces?checkout=success`,
+            theme: isDarkRef.current ? 'dark' : 'light',
+          },
+        });
+      } catch (err) {
+        console.error('[pricing] checkout open failed:', err);
+        toast.error('Could not open checkout.');
+      } finally {
+        setLoadingKey(null);
+      }
+    },
+    [isLoaded, isSignedIn, openSignIn, user],
+  );
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !paddleReady) return;
+    const pending = sessionStorage.getItem(PENDING_BUY_KEY);
+    if (!pending) return;
+    sessionStorage.removeItem(PENDING_BUY_KEY);
+    const plan = PLANS.find((p) => p.key === pending);
+    if (!plan) return;
+    handleBuy(plan.key);
+  }, [isLoaded, isSignedIn, paddleReady, handleBuy]);
 
   return (
     <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">

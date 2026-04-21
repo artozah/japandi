@@ -6,7 +6,7 @@ import { Check, Download, Trash2, X } from 'lucide-react';
 interface TileActionsProps {
   label: string;
   confirming: boolean;
-  onDownload: () => void;
+  onDownload?: () => void;
   onStartConfirm: () => void;
   onConfirmDelete: () => void;
   onCancelConfirm: () => void;
@@ -60,17 +60,19 @@ export function TileActions({
         </>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-            className="flex h-[22px] w-[22px] items-center justify-center rounded bg-black/55 text-white hover:bg-black/75"
-            aria-label={`Download ${label}`.trim()}
-          >
-            <Download className="h-3 w-3" />
-          </button>
+          {onDownload && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload();
+              }}
+              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-black/55 text-white hover:bg-black/75"
+              aria-label={`Download ${label}`.trim()}
+            >
+              <Download className="h-3 w-3" />
+            </button>
+          )}
           <button
             type="button"
             onClick={(e) => {
