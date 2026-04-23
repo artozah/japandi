@@ -69,31 +69,6 @@ export async function uploadImage(file: File): Promise<UploadedImage> {
   };
 }
 
-export async function describeUpload(
-  id: string,
-  signal?: AbortSignal,
-): Promise<string | null> {
-  try {
-    const res = await fetch(`/api/uploads/${id}/describe`, {
-      method: 'POST',
-      signal,
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { description?: unknown };
-    if (
-      typeof data.description === 'string' &&
-      data.description.trim().length > 0
-    ) {
-      return data.description.trim();
-    }
-    return null;
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    console.warn('[describeUpload] failed:', err);
-    return null;
-  }
-}
-
 function readImageDimensions(
   file: File,
 ): Promise<{ width: number; height: number }> {

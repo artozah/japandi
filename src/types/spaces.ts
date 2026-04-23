@@ -21,7 +21,7 @@ export interface AccordionGroup {
   badges?: readonly string[];
 }
 
-export type GenerationStatus = 'preparing' | 'generating' | 'ready' | 'error';
+export type GenerationStatus = 'generating' | 'ready' | 'error';
 
 export type PromptCategory = NavId;
 
@@ -39,7 +39,7 @@ export interface StyleSelection {
 }
 
 export interface InFlightState {
-  status: 'preparing' | 'generating';
+  status: 'generating';
   percentage: number;
 }
 
@@ -51,7 +51,6 @@ export interface UploadHistoryEntry {
   imageUrl: string;
   timestamp: number;
   label?: string;
-  description?: string;
 }
 
 export interface GenerationHistoryEntry {

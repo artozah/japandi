@@ -74,8 +74,6 @@ export const uploads = pgTable(
     width: integer('width'),
     height: integer('height'),
     sizeBytes: integer('size_bytes'),
-    description: text('description'),
-    describedAt: timestamp('described_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

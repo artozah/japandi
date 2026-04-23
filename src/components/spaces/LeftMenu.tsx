@@ -72,7 +72,6 @@ function ImageGrid({ items, navId, groupTitle, inFlight, onSelect }: ImageGridPr
             </div>
             {flight && (
               <GenerationOverlay
-                variant={flight.status === 'preparing' ? 'preparing' : 'progress'}
                 percentage={flight.percentage}
               />
             )}

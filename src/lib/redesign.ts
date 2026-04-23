@@ -1,4 +1,5 @@
 import { safeReadError } from '@/lib/http';
+import type { PromptSpec } from '@/types/spaces';
 
 export class InsufficientTokensError extends Error {
   constructor() {
@@ -28,6 +29,7 @@ export interface RunRedesignArgs {
   styleKey: string;
   styleLabel: string;
   prompt: string;
+  promptSpec?: PromptSpec;
   onProgress: (percentage: number) => void;
   signal?: AbortSignal;
 }
@@ -70,6 +72,7 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
         styleKey: args.styleKey,
         styleLabel: args.styleLabel,
         prompt: args.prompt,
+        promptSpec: args.promptSpec,
       }),
       signal: args.signal,
     });

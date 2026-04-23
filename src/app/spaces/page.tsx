@@ -10,7 +10,7 @@ import { useGenerationActions } from '@/hooks/useGenerationActions';
 import { useRedesign } from '@/hooks/useRedesign';
 import { streamChat } from '@/lib/chat-stream';
 import type { GenerationRow } from '@/lib/redesign';
-import { describeUpload, type UploadedImage } from '@/lib/uploads';
+import type { UploadedImage } from '@/lib/uploads';
 import type {
   ChatMessage,
   GenerationHistoryEntry,
@@ -26,7 +26,6 @@ interface UploadRow {
   id: string;
   blobUrl: string;
   createdAt: string;
-  description: string | null;
 }
 
 interface ChatMessageRow {
@@ -112,7 +111,6 @@ export default function SpacesPage() {
           imageUrl: row.blobUrl,
           timestamp: new Date(row.createdAt).getTime(),
           label: `Original ${idx + 1}`,
-          description: row.description ?? undefined,
         }));
         const uploadUrlById = new Map(
           uploadsByIdAsc.map((row) => [row.id, row.blobUrl] as const),
@@ -233,28 +231,6 @@ export default function SpacesPage() {
         selectedEntryId: entry.id,
         history: [...prev.history, entry],
       };
-    });
-
-    void describeUpload(image.id).then((description) => {
-      if (!description) return;
-      setState((prev) => {
-        const target = prev.history.find((e) => e.id === image.id);
-        if (
-          !target ||
-          target.kind !== 'upload' ||
-          target.description === description
-        ) {
-          return prev;
-        }
-        return {
-          ...prev,
-          history: prev.history.map((e) =>
-            e.id === image.id && e.kind === 'upload'
-              ? { ...e, description }
-              : e,
-          ),
-        };
-      });
     });
   }, []);
 
@@ -505,7 +481,7 @@ export default function SpacesPage() {
     for (const entry of state.history) {
       if (
         entry.kind === 'generation' &&
-        (entry.status === 'generating' || entry.status === 'preparing') &&
+        entry.status === 'generating' &&
         entry.sourceImageUrl === currentSourceImage
       ) {
         map[entry.styleKey] = {

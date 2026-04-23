@@ -14,13 +14,13 @@ import Link from 'next/link';
 import { Section, SectionHeader } from '@/components/home/Section';
 import { useSignInGate } from '@/hooks/useSignInGate';
 
-const ROOMS: { name: string; icon: LucideIcon }[] = [
-  { name: 'Living Room', icon: Home },
-  { name: 'Bedroom', icon: Bed },
-  { name: 'Kitchen', icon: ChefHat },
-  { name: 'Home Office', icon: Briefcase },
-  { name: 'Bathroom', icon: Bath },
-  { name: 'Outdoor', icon: TreePine },
+const ROOMS: { name: string; icon: LucideIcon; image: string }[] = [
+  { name: 'Living Room', icon: Home, image: '/rooms/living-room.webp' },
+  { name: 'Bedroom', icon: Bed, image: '/rooms/bedroom.webp' },
+  { name: 'Kitchen', icon: ChefHat, image: '/rooms/kitchen.webp' },
+  { name: 'Home Office', icon: Briefcase, image: '/rooms/home-office.webp' },
+  { name: 'Bathroom', icon: Bath, image: '/rooms/bathroom.webp' },
+  { name: 'Outdoor', icon: TreePine, image: '/rooms/outdoor.webp' },
 ];
 
 export function RoomExplorer() {
@@ -35,14 +35,22 @@ export function RoomExplorer() {
       />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ROOMS.map(({ name, icon: Icon }) => (
+        {ROOMS.map(({ name, icon: Icon, image }) => (
           <Link
             key={name}
             href="/spaces"
             onClick={(e) => gate('/spaces', e)}
             className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent-warm/40"
           >
-            <div className="aspect-[16/10] border-b border-border bg-muted" />
+            <div className="aspect-[16/10] border-b border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={image}
+                alt={name}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+            </div>
             <div className="flex items-center justify-between p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-accent-warm">

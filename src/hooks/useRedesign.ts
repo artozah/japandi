@@ -29,42 +29,6 @@ export interface UseRedesignArgs {
   onGenerationSettled?: () => void;
 }
 
-interface FetchEnrichedPromptArgs {
-  imageUrl: string;
-  description?: string;
-  spec: PromptSpec;
-  signal: AbortSignal;
-}
-
-async function fetchEnrichedPrompt({
-  imageUrl,
-  description,
-  spec,
-  signal,
-}: FetchEnrichedPromptArgs): Promise<string | null> {
-  try {
-    const res = await fetch('/api/prompts/enrich', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imageUrl,
-        spec,
-        ...(description ? { description } : {}),
-      }),
-      signal,
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { prompt?: unknown };
-    if (typeof data.prompt === 'string' && data.prompt.trim().length > 0) {
-      return data.prompt.trim();
-    }
-    return null;
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    return null;
-  }
-}
-
 export function useRedesign({
   currentSourceEntry,
   setState,
@@ -134,19 +98,16 @@ export function useRedesign({
       const id = crypto.randomUUID();
       abortersRef.current.set(id, controller);
 
-      const initialPrompt = overridePrompt ?? buildTemplate(promptSpec);
-      const initialStatus: GenerationHistoryEntry['status'] = overridePrompt
-        ? 'generating'
-        : 'preparing';
+      const prompt = overridePrompt ?? buildTemplate(promptSpec);
 
       const entry: GenerationHistoryEntry = {
         id,
         kind: 'generation',
-        status: initialStatus,
+        status: 'generating',
         styleKey,
         styleLabel,
         styleImage,
-        prompt: initialPrompt,
+        prompt,
         sourceImageUrl: sourceEntry.imageUrl,
         imageUrl: null,
         percentage: 0,
@@ -155,42 +116,22 @@ export function useRedesign({
       };
       setState((prev) => ({ ...prev, history: [entry, ...prev.history] }));
 
-      const sourceImageUrl = sourceEntry.imageUrl;
       const sourceUploadId =
         sourceEntry.kind === 'upload' ? sourceEntry.id : undefined;
       const sourceGenerationId =
         sourceEntry.kind === 'generation' ? sourceEntry.id : undefined;
-      const sourceDescription =
-        sourceEntry.kind === 'upload' ? sourceEntry.description : undefined;
 
-      const resolvePrompt = async (): Promise<string> => {
-        if (overridePrompt) return overridePrompt;
-        const enriched = await fetchEnrichedPrompt({
-          imageUrl: sourceImageUrl,
-          description: sourceDescription,
-          spec: promptSpec,
-          signal: controller.signal,
-        });
-        return enriched ?? initialPrompt;
-      };
-
-      resolvePrompt()
-        .then((finalPrompt) => {
-          if (!overridePrompt) {
-            patchEntry(id, { prompt: finalPrompt, status: 'generating' });
-          }
-
-          return runRedesign({
-            id,
-            sourceUploadId,
-            sourceGenerationId,
-            styleKey,
-            styleLabel,
-            prompt: finalPrompt,
-            onProgress: (percentage) => patchEntry(id, { percentage }),
-            signal: controller.signal,
-          });
-        })
+      runRedesign({
+        id,
+        sourceUploadId,
+        sourceGenerationId,
+        styleKey,
+        styleLabel,
+        prompt,
+        promptSpec: overridePrompt ? undefined : promptSpec,
+        onProgress: (percentage) => patchEntry(id, { percentage }),
+        signal: controller.signal,
+      })
         .then((result) => {
           patchEntry(id, {
             status: 'ready',

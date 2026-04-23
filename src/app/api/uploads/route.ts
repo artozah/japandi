@@ -20,7 +20,6 @@ export async function GET() {
       id: schema.uploads.id,
       blobUrl: schema.uploads.blobUrl,
       createdAt: schema.uploads.createdAt,
-      description: schema.uploads.description,
     })
     .from(schema.uploads)
     .where(eq(schema.uploads.userId, userId))

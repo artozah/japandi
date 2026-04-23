@@ -1,8 +1,10 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
+import { buildStaticPrompt } from '@/lib/prompt-builder';
 import { getModel, getReplicate, getWebhookUrl } from '@/lib/replicate';
 import { refundToken, spendToken } from '@/lib/tokens';
+import type { PromptSpec } from '@/types/spaces';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +15,7 @@ interface CreateBody {
   styleKey?: string;
   styleLabel?: string;
   prompt?: string;
+  promptSpec?: PromptSpec;
 }
 
 const UUID_RE =
@@ -107,6 +110,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Source image missing' }, { status: 400 });
   }
 
+  const prompt =
+    body.promptSpec ? buildStaticPrompt(body.promptSpec) : body.prompt!;
+
   const spent = await spendToken(userId);
   if (!spent) {
     return Response.json(
@@ -124,7 +130,7 @@ export async function POST(request: Request) {
       sourceGenerationId: body.sourceGenerationId ?? null,
       styleKey: body.styleKey,
       styleLabel: body.styleLabel,
-      prompt: body.prompt,
+      prompt,
       provider: 'replicate',
       status: 'pending',
     })
@@ -137,7 +143,7 @@ export async function POST(request: Request) {
       model: getModel(),
       input: {
         image: sourceImageUrl,
-        prompt: body.prompt,
+        prompt,
       },
       ...(webhook
         ? { webhook, webhook_events_filter: ['completed' as const] }

@@ -63,17 +63,13 @@ export function HistorySlider({
 
         if (
           entry.kind === 'generation' &&
-          (entry.status === 'generating' || entry.status === 'preparing')
+          entry.status === 'generating'
         ) {
           return (
             <div
               key={entry.id}
               className={cn(tileBaseCn, 'bg-muted')}
-              aria-label={
-                entry.status === 'preparing'
-                  ? `Preparing ${entry.styleLabel}`
-                  : `Generating ${entry.styleLabel}`
-              }
+              aria-label={`Generating ${entry.styleLabel}`}
               style={
                 entry.styleImage
                   ? {
@@ -85,7 +81,6 @@ export function HistorySlider({
               }
             >
               <GenerationOverlay
-                variant={entry.status === 'preparing' ? 'preparing' : 'progress'}
                 percentage={entry.percentage}
                 size="sm"
               />

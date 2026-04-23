@@ -1,8 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import { Section, SectionHeader } from '@/components/home/Section';
+import { useSignInGate } from '@/hooks/useSignInGate';
 
 const STYLES = [
   {
@@ -58,6 +60,7 @@ const STYLES = [
 type StyleKey = (typeof STYLES)[number]['key'];
 
 export function StyleGallery() {
+  const gate = useSignInGate();
   const [active, setActive] = useState<StyleKey>('japandi');
   const sel = STYLES.find((s) => s.key === active) ?? STYLES[0];
 
@@ -120,9 +123,13 @@ export function StyleGallery() {
           </p>
           <p className="mt-1 text-sm text-foreground">{sel.desc}</p>
 
-          <button className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground capitalize transition-colors hover:bg-primary/90">
+          <Link
+            href="/spaces"
+            onClick={(e) => gate('/spaces', e)}
+            className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground capitalize transition-colors hover:bg-primary/90"
+          >
             Try {sel.key}
-          </button>
+          </Link>
         </div>
 
         <div className="relative aspect-[4/3] min-h-[550px] overflow-hidden rounded-xl border border-border bg-muted lg:aspect-auto">
