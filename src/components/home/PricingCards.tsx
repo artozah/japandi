@@ -193,7 +193,7 @@ function PricingCard({
     plan.kind === 'one_time'
       ? 'Pay once, use anytime'
       : 'Resets monthly, cancel anytime',
-    'All 24 styles · HD downloads',
+    'All 36 styles · HD downloads',
     'Commercial use included',
     'Refund on failed generations',
   ];

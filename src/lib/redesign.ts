@@ -37,11 +37,13 @@ export interface RedesignResult {
   imageUrl: string;
 }
 
-const EXPECTED_DURATION_MS = 6_000;
-const POLL_INTERVAL_MS = 1500;
+const EXPECTED_DURATION_MS = 8_000;
 const TICK_INTERVAL_MS = 150;
 const PROGRESS_CAP = 95;
 const MAX_POLL_DURATION_MS = 10 * 60 * 1000;
+const INITIAL_WAIT_MS = 4_500;
+const SERVER_WAIT_MS = 9_500;
+const RETRY_GAP_MS = 1_000;
 
 export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult> {
   const startTime = Date.now();
@@ -78,19 +80,23 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
       throw new Error(err ?? 'Failed to start generation');
     }
 
+    await sleep(INITIAL_WAIT_MS, args.signal);
+
     while (true) {
       if (args.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       if (Date.now() - startTime > MAX_POLL_DURATION_MS) {
         throw new Error('Generation timed out');
       }
 
-      await sleep(POLL_INTERVAL_MS, args.signal);
-
       try {
-        const res = await fetch(`/api/generations/${args.id}`, {
-          signal: args.signal,
-        });
-        if (!res.ok) continue;
+        const res = await fetch(
+          `/api/generations/${args.id}?wait=${SERVER_WAIT_MS}`,
+          { signal: args.signal },
+        );
+        if (!res.ok) {
+          await sleep(RETRY_GAP_MS, args.signal);
+          continue;
+        }
         const { generation: row } = (await res.json()) as { generation: GenerationRow };
         if (row.status === 'ready' && row.outputBlobUrl) {
           return { generationId: row.id, imageUrl: row.outputBlobUrl };
@@ -101,6 +107,8 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') throw err;
       }
+
+      await sleep(RETRY_GAP_MS, args.signal);
     }
   } finally {
     clearInterval(tickInterval);

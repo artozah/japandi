@@ -51,6 +51,7 @@ export interface UploadHistoryEntry {
   imageUrl: string;
   timestamp: number;
   label?: string;
+  description?: string;
 }
 
 export interface GenerationHistoryEntry {

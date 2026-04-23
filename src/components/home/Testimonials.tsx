@@ -65,7 +65,7 @@ export function Testimonials() {
           </div>
           <div>
             <dd className="font-sans text-2xl font-bold text-foreground">
-              8
+              36
             </dd>
             <dt>styles</dt>
           </div>

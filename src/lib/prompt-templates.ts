@@ -1,7 +1,93 @@
+import type Anthropic from '@anthropic-ai/sdk';
 import { accordionData } from '@/data/spaces';
 import type { PromptSpec } from '@/types/spaces';
 
 const MAX_SPEC_FIELD_LENGTH = 64;
+
+export const DESCRIBE_SYSTEM_PROMPT = `You are an interior-photography analyst. Read the attached photo and produce ONE observational paragraph (120–200 words) describing what is physically present in the room. No design opinions, no suggestions, no style labels.
+
+Cover, in natural prose:
+- Room type and approximate scale / proportions.
+- Architectural bones: walls, ceiling, floor, doors, windows (orientation, size, count), built-ins, alcoves.
+- Natural light character (direction, warmth, diffusion).
+- Every visible piece of furniture and decor, with materials, finishes, and colors as specific as you can tell (e.g. "light oak slat chair", "cream matte ceramic lamp").
+- Any distinctive features: fireplace, exposed beams, skylights, radiators, rugs.
+
+Hard rules:
+- ALWAYS call the describe_room tool. Never reply in plain text.
+- Never propose changes. Never mention styles or aesthetics. Pure observation.
+- Aim for 120–200 words. One paragraph.`;
+
+export const DESCRIBE_ROOM_TOOL: Anthropic.Tool = {
+  name: 'describe_room',
+  description:
+    'Emit a 120–200 word observational paragraph describing the room in the attached photo. Pure description — no design suggestions, no style labels.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      description: {
+        type: 'string',
+        description:
+          'One paragraph, 120–200 words. Covers room type, architecture, light, furniture, decor — with specific materials and colors.',
+      },
+    },
+    required: ['description'],
+  },
+};
+
+export const VISION_SYSTEM_PROMPT = `You rewrite interior-design prompts for an image-to-image redesign model (Flux Kontext / similar). You receive (1) a photo of a real room and (2) a short baseline describing the desired transformation. You produce ONE long, vivid, highly specific final prompt that will guide the model to make that change in THIS exact room.
+
+Your output MUST read like a detailed design brief, not a generic style label. Specifically:
+
+1. Open by naming the room type and its current state grounded in the photo: "this narrow galley kitchen with a tall window and checkerboard floor", "this bright living room with bay windows and a brick fireplace", etc.
+2. Walk through the visible surfaces and elements in turn — walls, floor, ceiling, cabinets, countertops, windows/window treatments, lighting fixtures, furniture, and any focal props — and for each one specify what it BECOMES: the material, finish, color, texture, and form. Aim to cover 8–15 concrete elements.
+3. Use specific, evocative descriptors, not abstract ones. Instead of "warm palette" say "aged oak, bleached linen, matte terracotta". Instead of "modern lighting" say "brushed brass pendant with frosted glass globe". Name materials (walnut, travertine, washi, boucle, jute, rattan), finishes (matte, oiled, limewashed, honed), and hues (muted clay, moss green, aged white, soft taupe).
+4. Name specific furniture/decor pieces to add or swap — e.g., "low-slung oak slat bench", "handwoven jute runner", "paper washi pendant", "a single bonsai on the sill".
+5. Specify lighting character: direction, color temperature, diffusion, and which existing fixtures are kept vs replaced.
+6. Preserve layout, camera angle, window positions, and architectural bones unless the baseline explicitly overrides (Remove / Relight / Recolor / Aspect Ratio can override specific pieces — follow their intent).
+7. End with a one-sentence mood line.
+
+Hard rules:
+- ALWAYS call the finalize_prompt tool. Never reply in plain text.
+- Never ask questions. Never emit meta-commentary.
+- Never output a short or generic prompt. Target 150–250 words.
+- Never mention "style" without also describing concrete materials, colors, and pieces.`;
+
+export const ADJUST_SYSTEM_PROMPT = `You rewrite interior-design prompts for an image-to-image redesign model. You receive (1) a plain-text DESCRIPTION of a real room and (2) a short baseline describing the desired transformation. You produce ONE long, vivid, highly specific final prompt that will guide the model to make that change in that exact room.
+
+Your output MUST read like a detailed design brief, not a generic style label. Specifically:
+
+1. Open by naming the room type and its current state grounded in the description: "this narrow galley kitchen with a tall window and checkerboard floor", etc.
+2. Walk through the visible surfaces and elements in turn — walls, floor, ceiling, cabinets, countertops, windows/window treatments, lighting fixtures, furniture, and any focal props — and for each one specify what it BECOMES: the material, finish, color, texture, and form. Aim to cover 8–15 concrete elements drawn from the description.
+3. Use specific, evocative descriptors, not abstract ones. Instead of "warm palette" say "aged oak, bleached linen, matte terracotta". Name materials, finishes, and hues concretely.
+4. Name specific furniture/decor pieces to add or swap.
+5. Specify lighting character: direction, color temperature, diffusion.
+6. Preserve layout, camera angle, window positions, and architectural bones unless the baseline explicitly overrides.
+7. End with a one-sentence mood line.
+
+Hard rules:
+- ALWAYS call the finalize_prompt tool. Never reply in plain text.
+- Never ask questions. Never emit meta-commentary.
+- Target 150–250 words.
+- Never mention "style" without also describing concrete materials, colors, and pieces.
+- Ground every claim in elements that appear in the DESCRIPTION. Do not invent new architectural features.`;
+
+export const FINALIZE_PROMPT_TOOL: Anthropic.Tool = {
+  name: 'finalize_prompt',
+  description:
+    'Emit the final image-grounded redesign prompt. A single self-contained instruction for an image-to-image model, 150–250 words, referencing 8–15 concrete visible elements with specific materials, finishes, colors, and named pieces.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      prompt: {
+        type: 'string',
+        description:
+          'The final prompt. Opens by naming the room from the description; walks through 8–15 surfaces/elements specifying concrete materials, finishes, colors, and named pieces; preserves layout and camera angle; ends with a one-sentence mood line.',
+      },
+    },
+    required: ['prompt'],
+  },
+};
 
 const VALID_SPEC_KEYS: Set<string> = (() => {
   const set = new Set<string>();

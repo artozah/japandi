@@ -4,6 +4,23 @@ import { db, schema } from '@/db';
 import type { Generation } from '@/db/schema';
 import { refundToken } from '@/lib/tokens';
 
+export async function selectGenerationForUser(
+  id: string,
+  userId: string,
+): Promise<Generation | undefined> {
+  const [row] = await db
+    .select()
+    .from(schema.generations)
+    .where(
+      and(
+        eq(schema.generations.id, id),
+        eq(schema.generations.userId, userId),
+      ),
+    )
+    .limit(1);
+  return row;
+}
+
 type PredictionSnapshot = {
   id: string;
   status: string;

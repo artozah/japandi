@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/home/Header';
 import { Hero } from '@/components/home/Hero';
+import { HeroSwitcher } from '@/components/home/HeroSwitcher';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { TryItDemo } from '@/components/home/TryItDemo';
 import { StyleGallery } from '@/components/home/StyleGallery';
@@ -17,7 +19,9 @@ export default function HomePage() {
     <>
       <Header />
       <main className="flex-1">
-        <Hero />
+        <Suspense fallback={<Hero />}>
+          <HeroSwitcher />
+        </Suspense>
         <HowItWorks />
         <TryItDemo />
         <StyleGallery />

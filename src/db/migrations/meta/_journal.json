@@ -29,6 +29,13 @@
       "when": 1776629306829,
       "tag": "0003_even_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776937145441,
+      "tag": "0004_classy_paper_doll",
+      "breakpoints": true
     }
   ]
 }

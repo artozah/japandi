@@ -32,7 +32,7 @@ const ROWS = [
 
 export function Comparison() {
   return (
-    <Section muted width="max-w-5xl">
+    <Section id="comparison" muted width="max-w-5xl">
       <SectionHeader
         eyebrow="AI vs. Interior Designer"
         title={

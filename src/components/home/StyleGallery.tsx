@@ -62,11 +62,11 @@ export function StyleGallery() {
   const sel = STYLES.find((s) => s.key === active) ?? STYLES[0];
 
   return (
-    <Section>
+    <Section id="styles">
       <SectionHeader
         eyebrow="Style library"
         title="One room. Every aesthetic."
-        subtitle="Your space, reimagined in 8 curated styles. Tap any to preview."
+        subtitle="Your space, reimagined in 36 curated styles — here are a few to try."
       />
 
       <div className="mt-12 flex flex-wrap justify-center gap-2">
