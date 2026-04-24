@@ -139,19 +139,32 @@ async function markError(id: string, message: string): Promise<Generation> {
   return updated ?? (await getGeneration(id));
 }
 
-async function downloadAndStore(outputUrl: string, row: Generation) {
-  const res = await fetch(outputUrl);
-  if (!res.ok || !res.body) {
-    throw new Error(`Failed to fetch Replicate output: ${res.status}`);
-  }
-  const contentType = res.headers.get('content-type') ?? 'image/png';
-  const extension = contentType.split(';')[0].split('/')[1] ?? 'png';
-  const pathname = `users/${row.userId}/generations/${row.id}.${extension}`;
-  return await put(pathname, res.body, {
+function extensionFromMime(contentType: string): string {
+  return contentType.split(';')[0].split('/')[1] ?? 'png';
+}
+
+export async function storeGenerationBlob(
+  userId: string,
+  generationId: string,
+  content: Buffer | ReadableStream<Uint8Array>,
+  contentType: string,
+) {
+  const ext = extensionFromMime(contentType);
+  const pathname = `users/${userId}/generations/${generationId}.${ext}`;
+  return await put(pathname, content, {
     access: 'public',
     contentType,
     allowOverwrite: true,
     addRandomSuffix: false,
   });
+}
+
+async function downloadAndStore(outputUrl: string, row: Generation) {
+  const res = await fetch(outputUrl);
+  if (!res.ok || !res.body) {
+    throw new Error(`Failed to fetch output: ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type') ?? 'image/png';
+  return await storeGenerationBlob(row.userId, row.id, res.body, contentType);
 }
 

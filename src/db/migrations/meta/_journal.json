@@ -43,6 +43,13 @@
       "when": 1776969083582,
       "tag": "0005_thankful_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776998501614,
+      "tag": "0006_brainy_zzzax",
+      "breakpoints": true
     }
   ]
 }

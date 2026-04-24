@@ -10,15 +10,6 @@ export function getReplicate(): Replicate {
   return client;
 }
 
-export function getModel(): `${string}/${string}` {
-  const model = process.env.REPLICATE_MODEL;
-  if (!model) throw new Error('REPLICATE_MODEL is not set.');
-  if (!/^[^/]+\/[^/]+$/.test(model)) {
-    throw new Error('REPLICATE_MODEL must be in the form "owner/name".');
-  }
-  return model as `${string}/${string}`;
-}
-
 export function getWebhookUrl(): string | null {
   if (!process.env.REPLICATE_WEBHOOK_SECRET) return null;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;

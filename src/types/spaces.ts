@@ -36,6 +36,7 @@ export interface StyleSelection {
   styleLabel: string;
   styleImage?: string;
   promptSpec: PromptSpec;
+  model?: string;
 }
 
 export interface InFlightState {
@@ -60,7 +61,6 @@ export interface GenerationHistoryEntry {
   styleKey: string;
   styleLabel: string;
   styleImage?: string;
-  prompt?: string;
   sourceImageUrl: string;
   imageUrl: string | null;
   percentage: number;

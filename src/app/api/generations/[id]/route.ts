@@ -19,8 +19,8 @@ function isTerminal(row: Generation): boolean {
   return row.status === 'ready' || row.status === 'error';
 }
 
-async function advanceFromReplicate(row: Generation): Promise<Generation> {
-  if (!row.providerPredictionId) return row;
+async function advanceGeneration(row: Generation): Promise<Generation> {
+  if (row.provider !== 'replicate' || !row.providerPredictionId) return row;
   try {
     const replicate = getReplicate();
     const prediction = await replicate.predictions.get(row.providerPredictionId);
@@ -70,14 +70,14 @@ export async function GET(
 
   // Single-shot (legacy): advance once via Replicate and return.
   if (wait === 0) {
-    row = await advanceFromReplicate(row);
+    row = await advanceGeneration(row);
     return Response.json({ generation: row });
   }
 
   // Long-poll: tick through DB reads + Replicate calls until terminal or deadline.
   const deadline = Date.now() + wait;
   while (Date.now() < deadline && !request.signal.aborted) {
-    row = await advanceFromReplicate(row);
+    row = await advanceGeneration(row);
     if (isTerminal(row)) {
       return Response.json({ generation: row });
     }
@@ -122,7 +122,7 @@ export async function DELETE(
 
   const cleanups: Promise<unknown>[] = [];
   const wasInFlight = row.status === 'pending' || row.status === 'running';
-  if (wasInFlight && row.providerPredictionId) {
+  if (wasInFlight && row.providerPredictionId && row.provider === 'replicate') {
     cleanups.push(getReplicate().predictions.cancel(row.providerPredictionId));
   }
   if (row.outputBlobPathname) {

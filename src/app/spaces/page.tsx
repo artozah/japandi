@@ -145,7 +145,6 @@ export default function SpacesPage() {
                       : 'generating',
                 styleKey: row.styleKey,
                 styleLabel: row.styleLabel,
-                prompt: row.prompt ?? undefined,
                 sourceImageUrl,
                 imageUrl: row.outputBlobUrl,
                 percentage: row.percentage,
@@ -426,11 +425,6 @@ export default function SpacesPage() {
       startRedesign({
         styleKey: `chat:${messageId}`,
         styleLabel: msg.proposedPrompt.label,
-        promptSpec: {
-          category: 'style',
-          groupTitle: 'Chat',
-          itemTitle: msg.proposedPrompt.label,
-        },
         overridePrompt: msg.proposedPrompt.prompt,
       });
     },

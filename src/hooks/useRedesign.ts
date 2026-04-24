@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { InsufficientTokensError, runRedesign } from '@/lib/redesign';
-import { buildTemplate } from '@/lib/prompt-templates';
 import type {
   GenerationHistoryEntry,
   HistoryEntry,
@@ -19,8 +18,9 @@ export interface StartRedesignArgs {
   styleKey: string;
   styleLabel: string;
   styleImage?: string;
-  promptSpec: PromptSpec;
+  promptSpec?: PromptSpec;
   overridePrompt?: string;
+  model?: string;
 }
 
 export interface UseRedesignArgs {
@@ -81,6 +81,7 @@ export function useRedesign({
       styleImage,
       promptSpec,
       overridePrompt,
+      model,
     }: StartRedesignArgs) => {
       const sourceEntry = sourceEntryRef.current;
       if (!sourceEntry || !sourceEntry.imageUrl) {
@@ -98,8 +99,6 @@ export function useRedesign({
       const id = crypto.randomUUID();
       abortersRef.current.set(id, controller);
 
-      const prompt = overridePrompt ?? buildTemplate(promptSpec);
-
       const entry: GenerationHistoryEntry = {
         id,
         kind: 'generation',
@@ -107,7 +106,6 @@ export function useRedesign({
         styleKey,
         styleLabel,
         styleImage,
-        prompt,
         sourceImageUrl: sourceEntry.imageUrl,
         imageUrl: null,
         percentage: 0,
@@ -127,8 +125,9 @@ export function useRedesign({
         sourceGenerationId,
         styleKey,
         styleLabel,
-        prompt,
         promptSpec: overridePrompt ? undefined : promptSpec,
+        overridePrompt,
+        model,
         onProgress: (percentage) => patchEntry(id, { percentage }),
         signal: controller.signal,
       })

@@ -1,12 +1,15 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
+import { runGeminiGeneration } from '@/lib/google';
+import { DEFAULT_MODEL, MODELS, isValidModelId, getReplicateModelId, buildReplicateInput } from '@/lib/models';
 import { buildStaticPrompt } from '@/lib/prompt-builder';
-import { getModel, getReplicate, getWebhookUrl } from '@/lib/replicate';
+import { getReplicate, getWebhookUrl } from '@/lib/replicate';
 import { refundToken, spendToken } from '@/lib/tokens';
 import type { PromptSpec } from '@/types/spaces';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 interface CreateBody {
   id?: string;
@@ -14,8 +17,9 @@ interface CreateBody {
   sourceGenerationId?: string;
   styleKey?: string;
   styleLabel?: string;
-  prompt?: string;
   promptSpec?: PromptSpec;
+  overridePrompt?: string;
+  model?: string;
 }
 
 const UUID_RE =
@@ -30,7 +34,6 @@ export async function GET() {
       percentage: schema.generations.percentage,
       styleKey: schema.generations.styleKey,
       styleLabel: schema.generations.styleLabel,
-      prompt: schema.generations.prompt,
       sourceUploadId: schema.generations.sourceUploadId,
       sourceGenerationId: schema.generations.sourceGenerationId,
       outputBlobUrl: schema.generations.outputBlobUrl,
@@ -56,9 +59,9 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (!body.styleKey || !body.styleLabel || !body.prompt) {
+  if (!body.styleKey || !body.styleLabel || (!body.promptSpec && !body.overridePrompt)) {
     return Response.json(
-      { error: 'styleKey, styleLabel and prompt are required' },
+      { error: 'styleKey, styleLabel, and promptSpec (or overridePrompt) are required' },
       { status: 400 },
     );
   }
@@ -110,8 +113,10 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Source image missing' }, { status: 400 });
   }
 
-  const prompt =
-    body.promptSpec ? buildStaticPrompt(body.promptSpec) : body.prompt!;
+  const prompt = body.overridePrompt ?? buildStaticPrompt(body.promptSpec!);
+
+  const modelId = isValidModelId(body.model) ? body.model : DEFAULT_MODEL;
+  const modelDef = MODELS[modelId];
 
   const spent = await spendToken(userId);
   if (!spent) {
@@ -131,20 +136,39 @@ export async function POST(request: Request) {
       styleKey: body.styleKey,
       styleLabel: body.styleLabel,
       prompt,
-      provider: 'replicate',
+      provider: modelDef.provider,
+      model: modelDef.id,
       status: 'pending',
     })
     .returning();
 
   try {
+    if (modelDef.provider === 'google') {
+      const result = await runGeminiGeneration(
+        sourceImageUrl,
+        prompt,
+        userId,
+        inserted.id,
+      );
+      const [updated] = await db
+        .update(schema.generations)
+        .set({
+          status: 'ready',
+          percentage: 100,
+          outputBlobUrl: result.blobUrl,
+          outputBlobPathname: result.blobPathname,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.generations.id, inserted.id))
+        .returning();
+      return Response.json({ generation: updated });
+    }
+
     const replicate = getReplicate();
     const webhook = getWebhookUrl();
     const prediction = await replicate.predictions.create({
-      model: getModel(),
-      input: {
-        image: sourceImageUrl,
-        prompt,
-      },
+      model: getReplicateModelId(modelId),
+      input: buildReplicateInput(modelId, sourceImageUrl, prompt),
       ...(webhook
         ? { webhook, webhook_events_filter: ['completed' as const] }
         : {}),
@@ -162,7 +186,7 @@ export async function POST(request: Request) {
 
     return Response.json({ generation: updated });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Replicate error';
+    const message = err instanceof Error ? err.message : 'Generation error';
     const [updated] = await db
       .update(schema.generations)
       .set({

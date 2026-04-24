@@ -1,0 +1,1 @@
+ALTER TABLE "generations" ADD COLUMN "model" text DEFAULT 'flux-kontext' NOT NULL;

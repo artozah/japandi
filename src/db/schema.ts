@@ -98,6 +98,7 @@ export const generations = pgTable(
     status: text('status').notNull().default('pending'),
     percentage: integer('percentage').notNull().default(0),
     provider: text('provider').notNull(),
+    model: text('model').notNull().default('flux-kontext'),
     providerPredictionId: text('provider_prediction_id'),
     outputBlobUrl: text('output_blob_url'),
     outputBlobPathname: text('output_blob_pathname'),

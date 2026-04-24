@@ -66,7 +66,6 @@ export async function GET(request: Request) {
       outputBlobUrl: schema.generations.outputBlobUrl,
       sourceUploadId: schema.generations.sourceUploadId,
       sourceGenerationId: schema.generations.sourceGenerationId,
-      prompt: schema.generations.prompt,
       createdAt: schema.generations.createdAt,
       sourceImageUrl: sql<string | null>`
         COALESCE(${schema.uploads.blobUrl}, ${parentGeneration.outputBlobUrl})

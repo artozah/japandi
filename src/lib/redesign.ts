@@ -16,7 +16,6 @@ export interface GenerationRow {
   errorMessage: string | null;
   styleKey: string;
   styleLabel: string;
-  prompt: string | null;
   sourceUploadId: string | null;
   sourceGenerationId: string | null;
   createdAt: string;
@@ -28,8 +27,9 @@ export interface RunRedesignArgs {
   sourceGenerationId?: string;
   styleKey: string;
   styleLabel: string;
-  prompt: string;
   promptSpec?: PromptSpec;
+  overridePrompt?: string;
+  model?: string;
   onProgress: (percentage: number) => void;
   signal?: AbortSignal;
 }
@@ -43,7 +43,6 @@ const EXPECTED_DURATION_MS = 8_000;
 const TICK_INTERVAL_MS = 150;
 const PROGRESS_CAP = 95;
 const MAX_POLL_DURATION_MS = 10 * 60 * 1000;
-const INITIAL_WAIT_MS = 4_500;
 const SERVER_WAIT_MS = 9_500;
 const RETRY_GAP_MS = 1_000;
 
@@ -71,8 +70,9 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
         sourceGenerationId: args.sourceGenerationId,
         styleKey: args.styleKey,
         styleLabel: args.styleLabel,
-        prompt: args.prompt,
         promptSpec: args.promptSpec,
+        overridePrompt: args.overridePrompt,
+        model: args.model,
       }),
       signal: args.signal,
     });
@@ -83,8 +83,16 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
       throw new Error(err ?? 'Failed to start generation');
     }
 
-    await sleep(INITIAL_WAIT_MS, args.signal);
+    // Check if the POST already returned a terminal result (e.g. Gemini)
+    const created = (await createRes.json()) as { generation: GenerationRow };
+    if (created.generation.status === 'ready' && created.generation.outputBlobUrl) {
+      return { generationId: created.generation.id, imageUrl: created.generation.outputBlobUrl };
+    }
+    if (created.generation.status === 'error') {
+      throw new Error(created.generation.errorMessage ?? 'Generation failed');
+    }
 
+    // Poll until ready — the server long-polls so no initial delay needed
     while (true) {
       if (args.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       if (Date.now() - startTime > MAX_POLL_DURATION_MS) {

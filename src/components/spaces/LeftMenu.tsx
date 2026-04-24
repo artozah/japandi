@@ -10,6 +10,7 @@ import type {
   NavId,
   StyleSelection,
 } from '@/types/spaces';
+import { DEFAULT_MODEL, MODEL_IDS, MODELS, type ModelId } from '@/lib/models';
 import { ChevronDown, Images, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -218,6 +219,11 @@ function AccordionPanel({
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     groups[0]?.title ?? null,
   );
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
+
+  const handleSelect = (selection: StyleSelection) => {
+    onSelectStyle({ ...selection, model: selectedModel });
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
@@ -227,6 +233,24 @@ function AccordionPanel({
       <p className="mb-2 shrink-0 text-xs text-muted-foreground">
         {activeItem?.description}
       </p>
+
+      <div className="mb-3 flex shrink-0 items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          Model
+        </span>
+        <select
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+          className="flex-1 rounded border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-accent-warm"
+        >
+          {MODEL_IDS.map((id) => (
+            <option key={id} value={id}>
+              {MODELS[id].label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {groups.map((group) => (
         <AccordionItem
           key={group.title}
@@ -235,7 +259,7 @@ function AccordionPanel({
           badges={'badges' in group ? group.badges : undefined}
           navId={activeNav}
           inFlight={inFlightByStyleKey}
-          onSelect={onSelectStyle}
+          onSelect={handleSelect}
           isOpen={openAccordion === group.title}
           onToggle={() =>
             setOpenAccordion((prev) =>
