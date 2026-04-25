@@ -20,7 +20,6 @@ export interface StartRedesignArgs {
   styleImage?: string;
   promptSpec?: PromptSpec;
   overridePrompt?: string;
-  model?: string;
 }
 
 export interface UseRedesignArgs {
@@ -81,7 +80,6 @@ export function useRedesign({
       styleImage,
       promptSpec,
       overridePrompt,
-      model,
     }: StartRedesignArgs) => {
       const sourceEntry = sourceEntryRef.current;
       if (!sourceEntry || !sourceEntry.imageUrl) {
@@ -127,7 +125,6 @@ export function useRedesign({
         styleLabel,
         promptSpec: overridePrompt ? undefined : promptSpec,
         overridePrompt,
-        model,
         onProgress: (percentage) => patchEntry(id, { percentage }),
         signal: controller.signal,
       })

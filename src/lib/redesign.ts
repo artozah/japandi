@@ -29,7 +29,6 @@ export interface RunRedesignArgs {
   styleLabel: string;
   promptSpec?: PromptSpec;
   overridePrompt?: string;
-  model?: string;
   onProgress: (percentage: number) => void;
   signal?: AbortSignal;
 }
@@ -72,7 +71,6 @@ export async function runRedesign(args: RunRedesignArgs): Promise<RedesignResult
         styleLabel: args.styleLabel,
         promptSpec: args.promptSpec,
         overridePrompt: args.overridePrompt,
-        model: args.model,
       }),
       signal: args.signal,
     });

@@ -10,9 +10,10 @@ import { useState } from 'react';
 interface SpacesHeaderProps {
   tokens: number | null;
   showAccountWidget?: boolean;
+  subtitle?: string;
 }
 
-export function SpacesHeader({ tokens, showAccountWidget }: SpacesHeaderProps) {
+export function SpacesHeader({ tokens, showAccountWidget, subtitle }: SpacesHeaderProps) {
   const [plansOpen, setPlansOpen] = useState(false);
 
   return (
@@ -26,7 +27,7 @@ export function SpacesHeader({ tokens, showAccountWidget }: SpacesHeaderProps) {
           className="rounded-[4px]"
         />
         <span className="text-xs font-medium text-foreground">
-          Japandi — AI Interior Design
+          Japandi — {subtitle ?? 'AI Interior Design'}
         </span>
       </div>
       <div className="flex items-center gap-2">

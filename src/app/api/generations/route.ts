@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
 import { runGeminiGeneration } from '@/lib/google';
-import { DEFAULT_MODEL, MODELS, isValidModelId, getReplicateModelId, buildReplicateInput } from '@/lib/models';
+import { getActiveModel, getReplicateModelId, buildReplicateInput } from '@/lib/models';
 import { buildStaticPrompt } from '@/lib/prompt-builder';
 import { getReplicate, getWebhookUrl } from '@/lib/replicate';
 import { refundToken, spendToken } from '@/lib/tokens';
@@ -19,7 +19,6 @@ interface CreateBody {
   styleLabel?: string;
   promptSpec?: PromptSpec;
   overridePrompt?: string;
-  model?: string;
 }
 
 const UUID_RE =
@@ -115,8 +114,7 @@ export async function POST(request: Request) {
 
   const prompt = body.overridePrompt ?? buildStaticPrompt(body.promptSpec!);
 
-  const modelId = isValidModelId(body.model) ? body.model : DEFAULT_MODEL;
-  const modelDef = MODELS[modelId];
+  const modelDef = getActiveModel();
 
   const spent = await spendToken(userId);
   if (!spent) {
@@ -167,8 +165,8 @@ export async function POST(request: Request) {
     const replicate = getReplicate();
     const webhook = getWebhookUrl();
     const prediction = await replicate.predictions.create({
-      model: getReplicateModelId(modelId),
-      input: buildReplicateInput(modelId, sourceImageUrl, prompt),
+      model: getReplicateModelId(modelDef.id),
+      input: buildReplicateInput(modelDef.id, sourceImageUrl, prompt),
       ...(webhook
         ? { webhook, webhook_events_filter: ['completed' as const] }
         : {}),

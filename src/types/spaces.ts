@@ -36,7 +36,6 @@ export interface StyleSelection {
   styleLabel: string;
   styleImage?: string;
   promptSpec: PromptSpec;
-  model?: string;
 }
 
 export interface InFlightState {

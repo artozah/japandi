@@ -504,6 +504,7 @@ export default function SpacesPage() {
   if (!breakpoint) return null;
 
   const isDesktop = breakpoint === 'desktop';
+  const activeNavItem = navItems.find((n) => n.id === state.activeNav);
 
   // Shared props for sub-components
   const canvasProps = {
@@ -538,7 +539,7 @@ export default function SpacesPage() {
   if (isDesktop) {
     return (
       <div className="flex h-full w-full flex-col">
-        <SpacesHeader tokens={tokens} />
+        <SpacesHeader tokens={tokens} subtitle={activeNavItem?.description} />
         <div
           className="flex flex-1 flex-row overflow-hidden"
           style={{ height: 'calc(100dvh - 40px)' }}
@@ -608,7 +609,7 @@ export default function SpacesPage() {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <SpacesHeader tokens={tokens} showAccountWidget />
+      <SpacesHeader tokens={tokens} showAccountWidget subtitle={activeNavItem?.description} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-14">
         <MainCanvas {...canvasProps} className="flex-1" />
         <HistorySlider {...historyProps} className="h-24" />
