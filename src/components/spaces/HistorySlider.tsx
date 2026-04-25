@@ -13,6 +13,7 @@ interface HistorySliderProps {
   onSelect: (entry: HistoryEntry) => void;
   onDeleteGeneration: (id: string) => void;
   onDownloadGeneration: (entry: GenerationHistoryEntry) => void;
+  className?: string;
 }
 
 const containerCn =
@@ -34,6 +35,7 @@ export function HistorySlider({
   onSelect,
   onDeleteGeneration,
   onDownloadGeneration,
+  className,
 }: HistorySliderProps) {
   const {
     value: confirmingId,
@@ -48,7 +50,7 @@ export function HistorySlider({
 
   if (history.length === 0) {
     return (
-      <div className={cn(containerCn, 'justify-center')}>
+      <div className={cn(containerCn, 'justify-center', className)}>
         <p className="text-sm text-muted-foreground">
           Nothing here yet — start creating!
         </p>
@@ -57,7 +59,7 @@ export function HistorySlider({
   }
 
   return (
-    <div className={cn(containerCn, 'gap-3 overflow-x-auto')}>
+    <div className={cn(containerCn, 'gap-3 overflow-x-auto', className)}>
       {history.map((entry) => {
         const isActive = selectedEntryId === entry.id;
 

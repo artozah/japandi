@@ -1,14 +1,19 @@
 'use client';
 
 import { HistorySlider } from '@/components/spaces/HistorySlider';
-import { LeftMenu, type StyleSelection } from '@/components/spaces/LeftMenu';
+import { LeftMenu, AccordionPanel, type StyleSelection } from '@/components/spaces/LeftMenu';
 import { MainCanvas } from '@/components/spaces/MainCanvas';
-import { MobileGate } from '@/components/spaces/MobileGate';
+import { MobileToolbar } from '@/components/spaces/MobileToolbar';
 import { RightChat } from '@/components/spaces/RightChat';
 import { SpacesHeader } from '@/components/spaces/SpacesHeader';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { SideDrawer } from '@/components/ui/SideDrawer';
+import { navItems } from '@/data/spaces';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useGenerationActions } from '@/hooks/useGenerationActions';
 import { useRedesign } from '@/hooks/useRedesign';
 import { streamChat } from '@/lib/chat-stream';
+import { cn } from '@/lib/utils';
 import type { GenerationRow } from '@/lib/redesign';
 import type { UploadedImage } from '@/lib/uploads';
 import type {
@@ -37,7 +42,10 @@ interface ChatMessageRow {
   createdAt: string;
 }
 
+type ActivePanel = 'styles' | 'chat' | null;
+
 export default function SpacesPage() {
+  const breakpoint = useBreakpoint();
   const [state, setState] = useState<SpacesState>({
     activeNav: 'style',
     history: [],
@@ -47,6 +55,11 @@ export default function SpacesPage() {
   });
   const [isHydrating, setIsHydrating] = useState(true);
   const [tokens, setTokens] = useState<number | null>(null);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+
+  useEffect(() => {
+    if (breakpoint === 'desktop' && activePanel !== null) setActivePanel(null);
+  }, [breakpoint, activePanel]);
 
   const refreshTokens = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -487,13 +500,48 @@ export default function SpacesPage() {
     return map;
   }, [state.history, currentSourceImage]);
 
-  return (
-    <MobileGate>
+  // SSR / pre-mount guard
+  if (!breakpoint) return null;
+
+  const isDesktop = breakpoint === 'desktop';
+
+  // Shared props for sub-components
+  const canvasProps = {
+    selectedEntry,
+    currentSourceEntry,
+    hasUploads,
+    canPromoteGeneration,
+    isHydrating,
+    onImageUpload: handleImageUpload,
+    onSelectOriginal: handleSelectOriginal,
+    onPromoteGenerated: handlePromoteGenerated,
+  };
+
+  const historyProps = {
+    history: state.history,
+    selectedEntryId: state.selectedEntryId,
+    onSelect: handleHistorySelect,
+    onDeleteGeneration: handleDeleteGeneration,
+    onDownloadGeneration: handleDownloadGeneration,
+  };
+
+  const chatProps = {
+    messages: state.messages,
+    isStreaming: isChatStreaming,
+    hasSource,
+    onSendMessage: handleSendMessage,
+    onGenerateFromChat: handleGenerateFromChat,
+    onClearChat: handleClearChat,
+  };
+
+  // ── Desktop: original 3-column layout ──
+  if (isDesktop) {
+    return (
       <div className="flex h-full w-full flex-col">
         <SpacesHeader tokens={tokens} />
         <div
           className="flex flex-1 flex-row overflow-hidden"
-          style={{ height: 'calc(100dvh - 30px)' }}
+          style={{ height: 'calc(100dvh - 40px)' }}
         >
           <LeftMenu
             activeNav={state.activeNav}
@@ -502,34 +550,113 @@ export default function SpacesPage() {
             onSelectStyle={handleSelectStyle}
           />
           <div className="flex h-full w-[60%] flex-col">
-            <MainCanvas
-              selectedEntry={selectedEntry}
-              currentSourceEntry={currentSourceEntry}
-              hasUploads={hasUploads}
-              canPromoteGeneration={canPromoteGeneration}
-              isHydrating={isHydrating}
-              onImageUpload={handleImageUpload}
-              onSelectOriginal={handleSelectOriginal}
-              onPromoteGenerated={handlePromoteGenerated}
-            />
-            <HistorySlider
-              history={state.history}
-              selectedEntryId={state.selectedEntryId}
-              onSelect={handleHistorySelect}
-              onDeleteGeneration={handleDeleteGeneration}
-              onDownloadGeneration={handleDownloadGeneration}
-            />
+            <MainCanvas {...canvasProps} />
+            <HistorySlider {...historyProps} />
           </div>
-          <RightChat
-            messages={state.messages}
-            isStreaming={isChatStreaming}
-            hasSource={hasSource}
-            onSendMessage={handleSendMessage}
-            onGenerateFromChat={handleGenerateFromChat}
-            onClearChat={handleClearChat}
-          />
+          <RightChat {...chatProps} />
         </div>
       </div>
-    </MobileGate>
+    );
+  }
+
+  // ── Mobile & Tablet: stacked layout with sheets/drawers ──
+  const isMobile = breakpoint === 'mobile';
+
+  const handleTogglePanel = (panel: 'styles' | 'chat') => {
+    setActivePanel((prev) => (prev === panel ? null : panel));
+  };
+
+  const stylesContent = (
+    <div className="flex h-full flex-col">
+      <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-3 py-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = state.activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleNavChange(item.id)}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                isActive
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+      <AccordionPanel
+        key={state.activeNav}
+        activeNav={state.activeNav}
+        inFlightByStyleKey={inFlightByStyleKey}
+        onSelectStyle={handleSelectStyle}
+      />
+    </div>
+  );
+
+  const chatContent = (
+    <RightChat
+      {...chatProps}
+      className="w-full border-l-0"
+    />
+  );
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      <SpacesHeader tokens={tokens} showAccountWidget />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-14">
+        <MainCanvas {...canvasProps} className="flex-1" />
+        <HistorySlider {...historyProps} className="h-24" />
+      </div>
+
+      <MobileToolbar
+        activeSheet={activePanel}
+        onOpenStyles={() => handleTogglePanel('styles')}
+        onOpenChat={() => handleTogglePanel('chat')}
+      />
+
+      {isMobile ? (
+        <>
+          <BottomSheet
+            open={activePanel === 'styles'}
+            onClose={() => setActivePanel(null)}
+            title="Styles"
+          >
+            {stylesContent}
+          </BottomSheet>
+          <BottomSheet
+            open={activePanel === 'chat'}
+            onClose={() => setActivePanel(null)}
+            title="Chat"
+          >
+            {chatContent}
+          </BottomSheet>
+        </>
+      ) : (
+        <>
+          <SideDrawer
+            open={activePanel === 'styles'}
+            onClose={() => setActivePanel(null)}
+            side="left"
+            title="Styles"
+          >
+            {stylesContent}
+          </SideDrawer>
+          <SideDrawer
+            open={activePanel === 'chat'}
+            onClose={() => setActivePanel(null)}
+            side="right"
+            title="Chat"
+          >
+            {chatContent}
+          </SideDrawer>
+        </>
+      )}
+    </div>
   );
 }

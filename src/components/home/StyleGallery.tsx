@@ -126,13 +126,13 @@ export function StyleGallery() {
           <Link
             href="/spaces"
             onClick={(e) => gate('/spaces', e)}
-            className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground capitalize transition-colors hover:bg-primary/90"
+            className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground capitalize transition-colors hover:bg-primary/90 lg:mt-36"
           >
             Try {sel.key}
           </Link>
         </div>
 
-        <div className="relative aspect-[4/3] min-h-[550px] overflow-hidden rounded-xl border border-border bg-muted lg:aspect-auto">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted lg:aspect-auto">
           <Image
             key={sel.key}
             src={sel.image}

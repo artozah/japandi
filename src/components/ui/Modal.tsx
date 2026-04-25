@@ -1,9 +1,10 @@
 'use client';
 
+import { useOverlayLock } from '@/hooks/useOverlayLock';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ModalProps {
@@ -21,19 +22,7 @@ export function Modal({
   children,
   maxWidth = 'max-w-2xl',
 }: ModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, onClose]);
+  useOverlayLock(open, onClose);
 
   if (typeof window === 'undefined') return null;
 

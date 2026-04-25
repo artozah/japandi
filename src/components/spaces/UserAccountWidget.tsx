@@ -32,7 +32,11 @@ function initialsFrom(
   return '?';
 }
 
-export function UserAccountWidget() {
+export function UserAccountWidget({
+  menuPlacement = 'above',
+}: {
+  menuPlacement?: 'above' | 'below';
+} = {}) {
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
@@ -130,7 +134,12 @@ export function UserAccountWidget() {
       {open && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+          className={cn(
+            'absolute z-50 w-64 overflow-hidden rounded-lg border border-border bg-card shadow-xl',
+            menuPlacement === 'above'
+              ? 'bottom-full left-0 mb-2'
+              : 'top-full right-0 mt-2',
+          )}
         >
           <div className="flex items-start gap-3 border-b border-border p-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-sm font-semibold text-foreground">

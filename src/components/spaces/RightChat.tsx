@@ -22,6 +22,7 @@ interface RightChatProps {
   onSendMessage: (content: string) => void;
   onGenerateFromChat: (messageId: string) => void;
   onClearChat: () => void;
+  className?: string;
 }
 
 const GENERATE_COOLDOWN_MS = 3000;
@@ -33,6 +34,7 @@ export function RightChat({
   onSendMessage,
   onGenerateFromChat,
   onClearChat,
+  className,
 }: RightChatProps) {
   const [input, setInput] = useState('');
   const {
@@ -77,7 +79,7 @@ export function RightChat({
   };
 
   return (
-    <aside className="flex h-full w-[20%] shrink-0 flex-col border-l border-border bg-background">
+    <aside className={cn('flex h-full w-[20%] shrink-0 flex-col border-l border-border bg-background', className)}>
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-xs font-medium text-muted-foreground">Chat</span>
         <button
@@ -120,7 +122,7 @@ export function RightChat({
           onChange={(e) => setInput(e.target.value)}
           placeholder={isStreaming ? 'Waiting for reply…' : 'Type a message...'}
           disabled={isStreaming}
-          className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
         />
         <button
           type="submit"

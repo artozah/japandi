@@ -52,7 +52,7 @@ function ImageGrid({ items, navId, groupTitle, inFlight, onSelect }: ImageGridPr
               })
             }
             className={cn(
-              'group relative aspect-square overflow-hidden rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
+              'group relative min-w-0 aspect-square overflow-hidden rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
               isLoading ? 'cursor-not-allowed' : 'cursor-pointer',
             )}
           >
@@ -64,7 +64,7 @@ function ImageGrid({ items, navId, groupTitle, inFlight, onSelect }: ImageGridPr
                 'object-cover transition-transform',
                 !isLoading && 'group-hover:scale-105',
               )}
-              sizes="(max-width: 1024px) 80px, 120px"
+              sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 120px"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 text-center to-transparent p-1.5">
               <span className="text-sm font-medium leading-none text-white">
@@ -152,16 +152,11 @@ function AccordionItem({
   onToggle,
 }: AccordionItemProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col border-b border-border last:border-b-0',
-        isOpen && 'min-h-0 flex-1',
-      )}
-    >
+    <div className="flex flex-col border-b border-border last:border-b-0">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
+        className="flex w-full shrink-0 items-center justify-between py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
       >
         {title}
         <ChevronDown
@@ -172,7 +167,7 @@ function AccordionItem({
         />
       </button>
       {isOpen && (
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <div className="pb-3">
           {badges && badges.length > 0 ? (
             <BadgeList
               badges={badges}
@@ -203,13 +198,13 @@ interface LeftMenuProps {
   onSelectStyle: (selection: StyleSelection) => void;
 }
 
-interface AccordionPanelProps {
+export interface AccordionPanelProps {
   activeNav: NavId;
   inFlightByStyleKey: InFlightMap;
   onSelectStyle: (selection: StyleSelection) => void;
 }
 
-function AccordionPanel({
+export function AccordionPanel({
   activeNav,
   inFlightByStyleKey,
   onSelectStyle,
@@ -226,7 +221,7 @@ function AccordionPanel({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 py-3">
       <h3 className="shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {activeItem?.label}
       </h3>
@@ -251,23 +246,25 @@ function AccordionPanel({
         </select>
       </div>
 
-      {groups.map((group) => (
-        <AccordionItem
-          key={group.title}
-          title={group.title}
-          items={'items' in group ? group.items : undefined}
-          badges={'badges' in group ? group.badges : undefined}
-          navId={activeNav}
-          inFlight={inFlightByStyleKey}
-          onSelect={handleSelect}
-          isOpen={openAccordion === group.title}
-          onToggle={() =>
-            setOpenAccordion((prev) =>
-              prev === group.title ? null : group.title,
-            )
-          }
-        />
-      ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {groups.map((group) => (
+          <AccordionItem
+            key={group.title}
+            title={group.title}
+            items={'items' in group ? group.items : undefined}
+            badges={'badges' in group ? group.badges : undefined}
+            navId={activeNav}
+            inFlight={inFlightByStyleKey}
+            onSelect={handleSelect}
+            isOpen={openAccordion === group.title}
+            onToggle={() =>
+              setOpenAccordion((prev) =>
+                prev === group.title ? null : group.title,
+              )
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -279,7 +276,7 @@ export function LeftMenu({
   onSelectStyle,
 }: LeftMenuProps) {
   return (
-    <aside className="flex h-full w-[20%] shrink-0 flex-row border-r border-border bg-background">
+    <aside className="flex h-full w-[20%] shrink-0 overflow-hidden flex-row border-r border-border bg-background">
       <div className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-border py-4">
         {navItems.map((item) => {
           const Icon = item.icon;

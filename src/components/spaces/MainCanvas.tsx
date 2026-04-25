@@ -2,6 +2,7 @@
 
 import { BeforeAfterSlider } from '@/components/spaces/BeforeAfterSlider';
 import { SourceSwitcher } from '@/components/spaces/SourceSwitcher';
+import { cn } from '@/lib/utils';
 import { uploadImage, type UploadedImage } from '@/lib/uploads';
 import type { HistoryEntry } from '@/types/spaces';
 import { Loader2, Upload } from 'lucide-react';
@@ -17,6 +18,7 @@ interface MainCanvasProps {
   onImageUpload: (image: UploadedImage) => void;
   onSelectOriginal: () => void;
   onPromoteGenerated: () => void;
+  className?: string;
 }
 
 export function MainCanvas({
@@ -28,6 +30,7 @@ export function MainCanvas({
   onImageUpload,
   onSelectOriginal,
   onPromoteGenerated,
+  className,
 }: MainCanvasProps) {
   const currentSourceImage = currentSourceEntry?.imageUrl ?? null;
   const currentSourceKind = currentSourceEntry?.kind ?? null;
@@ -78,7 +81,7 @@ export function MainCanvas({
 
   if (isHydrating) {
     return (
-      <div className="flex h-[80%] w-full items-center justify-center p-6">
+      <div className={cn('flex h-[80%] w-full items-center justify-center p-6', className)}>
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -87,7 +90,7 @@ export function MainCanvas({
   if (!currentSourceImage) {
     return (
       <div
-        className="flex h-[80%] w-full items-center justify-center p-6"
+        className={cn('flex h-[80%] w-full items-center justify-center p-6', className)}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -134,7 +137,7 @@ export function MainCanvas({
       : currentSourceImage;
 
   return (
-    <div className="flex h-[80%] w-full flex-col bg-muted/30 px-4 pt-3 pb-4">
+    <div className={cn('flex h-[80%] w-full flex-col bg-muted/30 px-4 pt-3 pb-4', className)}>
       <div className="mb-2 flex shrink-0 justify-center">
         <SourceSwitcher
           currentSourceKind={currentSourceKind}

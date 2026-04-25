@@ -1,15 +1,18 @@
 'use client';
 
+import { UserAccountWidget } from '@/components/spaces/UserAccountWidget';
 import { ViewPlansModal } from '@/components/spaces/ViewPlansModal';
-import { Coins } from 'lucide-react';
+import { Coins, Images } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 
 interface SpacesHeaderProps {
   tokens: number | null;
+  showAccountWidget?: boolean;
 }
 
-export function SpacesHeader({ tokens }: SpacesHeaderProps) {
+export function SpacesHeader({ tokens, showAccountWidget }: SpacesHeaderProps) {
   const [plansOpen, setPlansOpen] = useState(false);
 
   return (
@@ -27,6 +30,16 @@ export function SpacesHeader({ tokens }: SpacesHeaderProps) {
         </span>
       </div>
       <div className="flex items-center gap-2">
+        {showAccountWidget && (
+          <Link
+            href="/library"
+            aria-label="Library"
+            title="Library"
+            className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Images className="h-4 w-4" />
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => setPlansOpen(true)}
@@ -39,6 +52,9 @@ export function SpacesHeader({ tokens }: SpacesHeaderProps) {
             {tokens === null ? '—' : tokens}
           </span>
         </button>
+        {showAccountWidget && (
+          <UserAccountWidget menuPlacement="below" />
+        )}
       </div>
 
       <ViewPlansModal open={plansOpen} onClose={() => setPlansOpen(false)} />
