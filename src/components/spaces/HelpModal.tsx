@@ -14,8 +14,8 @@ interface HelpModalProps {
 
 const FAQ_ITEMS: Array<{ q: string; a: string }> = [
   {
-    q: 'What is Japandi?',
-    a: 'Japandi is an AI-powered interior redesign tool. Upload a photo of any room and generate reimagined versions in dozens of styles, locations, themes, or lighting conditions — without moving a piece of furniture in real life.',
+    q: 'What is Envisio?',
+    a: 'Envisio is an AI-powered interior redesign tool. Upload a photo of any room and generate reimagined versions in dozens of styles, locations, themes, or lighting conditions — without moving a piece of furniture in real life.',
   },
   {
     q: 'How does it work?',

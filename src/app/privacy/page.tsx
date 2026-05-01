@@ -4,23 +4,23 @@ import {
 } from '@/components/home/LegalPageLayout';
 
 export const metadata = {
-  title: 'Privacy Policy · Japandi',
+  title: 'Privacy Policy · Envisio',
   description:
-    'How Japandi collects, uses, stores, and shares your personal data.',
+    'How Envisio collects, uses, stores, and shares your personal data.',
 };
 
 export default function PrivacyPage() {
   return (
     <LegalPageLayout title="Privacy Policy" lastUpdated="April 19, 2026">
       <p>
-        This Privacy Policy describes what information Japandi
+        This Privacy Policy describes what information Envisio
         (&ldquo;<strong>we</strong>&rdquo;, &ldquo;<strong>us</strong>&rdquo;)
         collects when you use our AI-powered interior redesign service, how
         we use it, and the choices you have.
       </p>
 
       <h2>1. Information We Collect</h2>
-      <p>We collect only the data we need to operate Japandi.</p>
+      <p>We collect only the data we need to operate Envisio.</p>
       <ul>
         <li>
           <strong>Account information:</strong> your email address, name,
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
 
       <h2>3. Third-Party Processors</h2>
       <p>
-        Japandi uses specialised providers to run different parts of the
+        Envisio uses specialised providers to run different parts of the
         service. Each one only receives the data it needs.
       </p>
       <ul>
@@ -153,7 +153,7 @@ export default function PrivacyPage() {
 
       <h2>8. Children</h2>
       <p>
-        Japandi is not intended for users under 13 (or the minimum age in
+        Envisio is not intended for users under 13 (or the minimum age in
         your jurisdiction). We do not knowingly collect personal data from
         children. If you believe a child has created an account, please
         contact us and we will remove it.
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
       <h2>9. International Transfers</h2>
       <p>
         Our service and processors may operate in different countries than
-        the one you live in. By using Japandi, you consent to your data
+        the one you live in. By using Envisio, you consent to your data
         being transferred to and processed in those countries, each of
         which may have different data protection rules than your own.
       </p>

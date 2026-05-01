@@ -3,7 +3,7 @@ import { Toaster } from 'sonner';
 import { ensureUserRow, requireUserId } from '@/lib/auth';
 
 export const metadata: Metadata = {
-  title: 'Spaces — Japandi',
+  title: 'Spaces — Envisio',
   description: 'AI-powered interior design editor.',
 };
 

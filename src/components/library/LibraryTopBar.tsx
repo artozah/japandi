@@ -15,17 +15,17 @@ export function LibraryTopBar({ tokens }: LibraryTopBarProps) {
         <Link
           href="/"
           className="flex items-center gap-2"
-          aria-label="Japandi home"
+          aria-label="Envisio home"
         >
           <Image
             src="/logo_icon.svg"
-            alt="Japandi"
+            alt="Envisio"
             width={22}
             height={22}
             className="rounded-[4px]"
           />
           <span className="text-sm font-semibold tracking-tight text-foreground">
-            Japandi
+            Envisio
           </span>
         </Link>
         <Link

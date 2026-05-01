@@ -28,7 +28,7 @@ export function Footer() {
             href="/"
             className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground"
           >
-            <Image src="/logo_dark.svg" alt="Japandi" width={180} height={52} />
+            <Image src="/logo_dark.svg" alt="Envisio" width={180} height={52} />
           </Link>
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
             Transform Your Space with AI-Powered Interior Design Ideas
@@ -64,7 +64,7 @@ export function Footer() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Japandi. All rights reserved.
+            &copy; {new Date().getFullYear()} Envisio. All rights reserved.
           </p>
         </div>
       </div>

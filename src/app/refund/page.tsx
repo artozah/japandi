@@ -4,16 +4,16 @@ import {
 } from '@/components/home/LegalPageLayout';
 
 export const metadata = {
-  title: 'Refund Policy · Japandi',
+  title: 'Refund Policy · Envisio',
   description:
-    'How refunds work for Japandi token purchases and subscriptions.',
+    'How refunds work for Envisio token purchases and subscriptions.',
 };
 
 export default function RefundPage() {
   return (
     <LegalPageLayout title="Refund Policy" lastUpdated="April 19, 2026">
       <p>
-        We want you to get real value from Japandi. This page explains how
+        We want you to get real value from Envisio. This page explains how
         token refunds work, when we refund purchases, and how to ask for one.
       </p>
 
@@ -65,7 +65,7 @@ export default function RefundPage() {
       <h2>5. How to Request a Refund</h2>
       <p>
         Email <SupportEmailLink /> from the address associated with your
-        Japandi account and include:
+        Envisio account and include:
       </p>
       <ul>
         <li>the Paddle order / subscription ID (see your receipt);</li>

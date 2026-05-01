@@ -19,7 +19,7 @@ export function CommunityGallery() {
       <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent-warm">
-            Community · #madewithjapandi
+            Community · #madewithenvisio
           </p>
           <h2 className="mt-4 max-w-2xl text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             Real rooms. Real people.

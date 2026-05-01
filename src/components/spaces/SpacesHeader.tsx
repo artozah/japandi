@@ -13,7 +13,11 @@ interface SpacesHeaderProps {
   subtitle?: string;
 }
 
-export function SpacesHeader({ tokens, showAccountWidget, subtitle }: SpacesHeaderProps) {
+export function SpacesHeader({
+  tokens,
+  showAccountWidget,
+  subtitle,
+}: SpacesHeaderProps) {
   const [plansOpen, setPlansOpen] = useState(false);
 
   return (
@@ -21,13 +25,13 @@ export function SpacesHeader({ tokens, showAccountWidget, subtitle }: SpacesHead
       <div className="flex items-center gap-1.5">
         <Image
           src="/logo_icon.svg"
-          alt="Japandi"
+          alt="Envisio"
           width={22}
           height={22}
           className="rounded-[4px]"
         />
         <span className="text-xs font-medium text-foreground">
-          Japandi — {subtitle ?? 'AI Interior Design'}
+          Envisio — {subtitle ?? 'AI Interior Design'}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -49,13 +53,9 @@ export function SpacesHeader({ tokens, showAccountWidget, subtitle }: SpacesHead
           title="Get more tokens"
         >
           <Coins className="h-3 w-3" />
-          <span className="tabular-nums">
-            {tokens === null ? '—' : tokens}
-          </span>
+          <span className="tabular-nums">{tokens === null ? '—' : tokens}</span>
         </button>
-        {showAccountWidget && (
-          <UserAccountWidget menuPlacement="below" />
-        )}
+        {showAccountWidget && <UserAccountWidget menuPlacement="below" />}
       </div>
 
       <ViewPlansModal open={plansOpen} onClose={() => setPlansOpen(false)} />

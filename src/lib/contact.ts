@@ -1,1 +1,1 @@
-export const SUPPORT_EMAIL = 'support@japandi.app';
+export const SUPPORT_EMAIL = 'support@envisio.app';

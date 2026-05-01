@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Japandi — AI-Powered Interior Design',
+  title: 'Envisio — AI-Powered Interior Design',
   description: 'Transform Your Space with AI-Powered Interior Design Ideas',
 };
 

@@ -42,7 +42,7 @@ export function Comparison() {
             A starting point.
           </>
         }
-        subtitle="Use Japandi to discover what you want. Bring a designer in for the execution — or don’t. Your call."
+        subtitle="Use Envisio to discover what you want. Bring a designer in for the execution — or don’t. Your call."
       />
 
       <div className="mt-12 overflow-hidden rounded-xl border border-border bg-card">
@@ -52,7 +52,7 @@ export function Comparison() {
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-warm" />
               <span className="text-sm font-semibold text-foreground">
-                Japandi AI
+                Envisio AI
               </span>
             </div>
             <p className="mt-1 font-mono text-[11px] text-accent-warm">

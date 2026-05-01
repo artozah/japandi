@@ -27,7 +27,7 @@ export function Header() {
         >
           <Image
             src="/logo_dark.svg"
-            alt="Japandi"
+            alt="Envisio"
             width={180}
             height={52}
           />
