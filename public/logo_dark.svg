@@ -1,6 +1,6 @@
 <svg width="246" height="52" viewBox="30 24 246 52" role="img" xmlns="http://www.w3.org/2000/svg">
-  <title>Japandi AI Interior Design — Dark Logo</title>
-  <desc>Japandi logo on dark surface</desc>
+  <title>Envisio AI Interior Design — Dark Logo</title>
+  <desc>Envisio logo on dark surface</desc>
 
   <rect x="34" y="28" width="52" height="5" rx="2.5" fill="#CECBF6"/>
   <rect x="38" y="36" width="44" height="3.5" rx="1.75" fill="#CECBF6"/>
@@ -9,6 +9,6 @@
   <circle cx="89" cy="30" r="4" fill="#5DCAA5"/>
   <circle cx="89" cy="30" r="2" fill="none"/>
 
-  <text x="112" y="53" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500" fill="#EEEDFE" letter-spacing="-0.5">Japandi</text>
+  <text x="112" y="53" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500" fill="#EEEDFE" letter-spacing="-0.5">Envisio</text>
   <text x="113" y="74" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#AFA9EC" letter-spacing="1.5">AI INTERIOR DESIGN</text>
 </svg>
