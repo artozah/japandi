@@ -5,7 +5,6 @@ import { HowItWorks } from '@/components/home/HowItWorks';
 import { StyleGallery } from '@/components/home/StyleGallery';
 import { RoomExplorer } from '@/components/home/RoomExplorer';
 import { UseCases } from '@/components/home/UseCases';
-import { Testimonials } from '@/components/home/Testimonials';
 import { Comparison } from '@/components/home/Comparison';
 import { Pricing } from '@/components/home/Pricing';
 import { FAQ } from '@/components/home/FAQ';
@@ -17,11 +16,15 @@ const TryItDemo = dynamic(() =>
 const CommunityGallery = dynamic(() =>
   import('@/components/home/CommunityGallery').then((m) => m.CommunityGallery),
 );
+const Testimonials = dynamic(() =>
+  import('@/components/home/Testimonials').then((m) => m.Testimonials),
+);
 
 export default function HomePage() {
   const showTryItDemo = process.env.NEXT_PUBLIC_FF_TRY_IT_DEMO === 'true';
   const showCommunityGallery =
     process.env.NEXT_PUBLIC_FF_COMMUNITY_GALLERY === 'true';
+  const showTestimonials = process.env.NEXT_PUBLIC_FF_TESTIMONIALS === 'true';
 
   return (
     <>
@@ -33,7 +36,7 @@ export default function HomePage() {
         <StyleGallery />
         <RoomExplorer />
         <UseCases />
-        <Testimonials />
+        {showTestimonials && <Testimonials />}
         <Comparison />
         {showCommunityGallery && <CommunityGallery />}
         <Pricing />
