@@ -1,9 +1,16 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSignInGate } from '@/hooks/useSignInGate';
+
+const AFTER_STYLES = [
+  { src: '/hero/after-mid-century.webp', label: 'Mid-Century' },
+  { src: '/hero/after-scandinavian.webp', label: 'Scandinavian' },
+  { src: '/hero/after-minimalist.webp', label: 'Minimalist' },
+  { src: '/hero/after-bauhaus.webp', label: 'Bauhaus' },
+];
 
 const STATS = [
   { value: '10k+', label: 'rooms redesigned' },
@@ -79,6 +86,25 @@ function BeforeAfterSlider() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(50);
   const dragging = useRef(false);
+  const [styleIndex, setStyleIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!dragging.current) {
+        setStyleIndex((i) => (i + 1) % AFTER_STYLES.length);
+      }
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  const current = AFTER_STYLES[styleIndex];
+
+  useEffect(() => {
+    AFTER_STYLES.forEach(({ src }) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   const updateFromClientX = useCallback((clientX: number) => {
     const el = trackRef.current;
@@ -131,7 +157,18 @@ function BeforeAfterSlider() {
         className="absolute inset-0"
         style={{ clipPath: `inset(0 0 0 ${pos}%)` }}
       >
-        <HeroImage src="/hero/after-japandi.webp" label="after · japandi" tone="warm" />
+        <AnimatePresence>
+          <motion.div
+            key={styleIndex}
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <HeroImage src={current.src} label={`after · ${current.label}`} tone="warm" />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <span className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-2.5 py-1 font-mono text-xs text-foreground backdrop-blur">
@@ -139,7 +176,7 @@ function BeforeAfterSlider() {
       </span>
       <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-2.5 py-1 font-mono text-xs text-foreground backdrop-blur">
         <span className="h-1.5 w-1.5 rounded-full bg-accent-warm" />
-        After · Japandi
+        After · {current.label}
       </span>
 
       <div
