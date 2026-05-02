@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Plus, Minus } from 'lucide-react';
 import { Section, SectionHeader } from '@/components/home/Section';
+import { ContactSupport } from '@/components/home/ContactSupport';
 
 const FAQS = [
   {
@@ -87,22 +87,7 @@ export function FAQ() {
         })}
       </div>
 
-      <div className="mt-10 flex items-center justify-between gap-6 rounded-xl border border-border bg-card p-6">
-        <div>
-          <p className="text-sm font-medium text-foreground">
-            Still have questions?
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            We reply within 24 hours on weekdays.
-          </p>
-        </div>
-        <Link
-          href="#"
-          className="inline-flex h-11 items-center justify-center rounded-md border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          Contact support
-        </Link>
-      </div>
+      <ContactSupport />
     </Section>
   );
 }
